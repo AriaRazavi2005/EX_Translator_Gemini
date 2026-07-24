@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "Gemini AI Translator",
+    "description": "Name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Fast, precise AI translation powered by Google Gemini",
+    "description": "Description of the extension"
+  }
+}

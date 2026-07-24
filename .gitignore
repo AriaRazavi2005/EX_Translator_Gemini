@@ -1,0 +1,13 @@
+# Dependency and build output
+node_modules/
+graphify-out/
+.graphify_analysis.json
+
+# Logs
+*.log
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

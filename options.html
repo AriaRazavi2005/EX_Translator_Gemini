@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تنظیمات مترجم هوشمند Gemini</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header class="options-header">
+      <div class="brand">
+        <span class="sparkle">✦</span>
+        <h1>تنظیمات مترجم Gemini AI</h1>
+      </div>
+      <div class="version-tag">نسخه ۱.۰.۰</div>
+    </header>
+
+    <main class="options-main">
+      <!-- Section 1: API Configuration -->
+      <section class="settings-section">
+        <h2>🔑 پیکربندی API گوگل (Google Gemini API)</h2>
+        <p class="section-desc">برای استفاده از ترجمه هوشمند، کلید API خود را وارد کنید. کلید به صورت امن در مرورگر ذخیره می‌شود.</p>
+
+        <div class="field-group">
+          <label for="api-key-input">کلید API گوگل (Gemini API Key):</label>
+          <div class="input-with-btn">
+            <input type="password" id="api-key-input" placeholder="AIzaSy..." autocomplete="off">
+            <button id="toggle-key-visibility" class="sec-btn" title="نمایش/مخفی">👁️</button>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="verify-key-btn" class="primary-btn">
+            <span>🔄 تست اتصال و لیست‌گیری آنلاین مدل‌ها</span>
+          </button>
+        </div>
+
+        <div id="api-status-box" class="status-box"></div>
+      </section>
+
+      <!-- Section 2: Model Selection -->
+      <section class="settings-section">
+        <h2>🤖 انتخاب مدل هوش مصنوعی Gemini</h2>
+        <p class="section-desc">مدل مورد نظر خود را برای پردازش ترجمه‌ها انتخاب کنید. می‌توانید لیست را آنلاین بروزرسانی کنید.</p>
+
+        <div class="field-group">
+          <label for="model-select">مدل فعال ترجمه:</label>
+          <select id="model-select">
+            <option value="gemini-flash-latest">gemini-flash-latest (توصیه شده / آخرین نسخه سری Flash)</option>
+            <option value="gemini-3.6-flash">gemini-3.6-flash (جدیدترین مدل Flash)</option>
+            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Section 3: Extension Preferences -->
+      <section class="settings-section">
+        <h2>⚙️ تنظیمات پیش‌فرض اکستنشن</h2>
+
+        <div class="field-group">
+          <label for="default-target-lang">زبان مقصد پیش‌فرض:</label>
+          <select id="default-target-lang">
+            <option value="fa">فارسی (Persian)</option>
+            <option value="en">انگلیسی (English)</option>
+            <option value="ar">عربی (Arabic)</option>
+            <option value="fr">فرانسوی (French)</option>
+            <option value="de">آلمانی (German)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="default-tone">لحن ترجمه پیش‌فرض:</label>
+          <select id="default-tone">
+            <option value="general">عمومی (روان و طبیعی)</option>
+            <option value="formal">رسمی و اداری</option>
+            <option value="informal">صمیمانه و گفتاری</option>
+            <option value="technical">تخصصی و اصطلاحات علمی</option>
+          </select>
+        </div>
+
+        <div class="field-group checkbox-group">
+          <label class="checkbox-container">
+            <input type="checkbox" id="auto-tooltip-checkbox" checked>
+            <span class="checkmark"></span>
+            <span class="checkbox-label">نمایش آیکون پاپ‌آپ شناور هنگام انتخاب متن در صفحات وب</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Save Bar -->
+      <div class="save-bar">
+        <button id="save-settings-btn" class="save-btn">
+          <span>ذخیره تنظیمات</span>
+        </button>
+        <span id="save-msg" class="save-msg"></span>
+      </div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
