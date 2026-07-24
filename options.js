@@ -1,6 +1,7 @@
 // Options JavaScript for Gemini AI Translator
 document.addEventListener("DOMContentLoaded", () => {
   const apiKeyInput = document.getElementById("api-key-input");
+  const customProxyInput = document.getElementById("custom-proxy-input");
   const toggleKeyVisibilityBtn = document.getElementById("toggle-key-visibility");
   const verifyKeyBtn = document.getElementById("verify-key-btn");
   const apiStatusBox = document.getElementById("api-status-box");
@@ -14,15 +15,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load Saved Preferences
   chrome.storage.local.get(null, (items) => {
     if (items.apiKey) apiKeyInput.value = items.apiKey;
+    if (items.customProxyUrl) customProxyInput.value = items.customProxyUrl;
     if (items.defaultTargetLang) defaultTargetLang.value = items.defaultTargetLang;
     if (items.defaultTone) defaultTone.value = items.defaultTone;
     if (items.autoShowTooltip !== undefined) autoTooltipCheckbox.checked = items.autoShowTooltip;
 
-    const savedModel = items.selectedModel || "gemini-2.5-flash";
+    const savedModel = items.selectedModel || "gemini-flash-latest";
 
     // Auto verify & fetch live models if API key exists
     if (items.apiKey) {
-      fetchLiveModels(items.apiKey, savedModel);
+      fetchLiveModels(items.apiKey, savedModel, items.customProxyUrl);
     }
   });
 
@@ -37,21 +39,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Verify API Key and Fetch Online Models from Google
+  // Verify API Key and Fetch Online Models from Google or Custom Proxy
   verifyKeyBtn.addEventListener("click", () => {
     const key = apiKeyInput.value.trim();
     if (!key) {
       showStatus("لطفاً ابتدا کلید API را وارد فرمایید.", "error");
       return;
     }
-    fetchLiveModels(key, modelSelect.value);
+    fetchLiveModels(key, modelSelect.value, customProxyInput.value.trim());
   });
 
-  async function fetchLiveModels(apiKey, currentSelectedModel) {
+  async function fetchLiveModels(apiKey, currentSelectedModel, proxyUrl) {
     showStatus("در حال دریافت لیست مدل‌های فعال از گوگل...", "info");
 
+    let baseUrl = proxyUrl ? proxyUrl.trim().replace(/\/+$/, '') : "https://generativelanguage.googleapis.com";
+
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const response = await fetch(`${baseUrl}/v1beta/models?key=${apiKey}`);
       
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -76,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let foundSelected = false;
 
       genModels.forEach((m) => {
-        const modelId = m.name.replace(/^models\//, ""); // e.g. gemini-2.5-flash
+        const modelId = m.name.replace(/^models\//, ""); // e.g. gemini-flash-latest
         const option = document.createElement("option");
         option.value = modelId;
         option.innerText = `${modelId} - ${m.displayName || modelId}`;
@@ -107,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Save Settings
   saveSettingsBtn.addEventListener("click", () => {
     const apiKey = apiKeyInput.value.trim();
+    const customProxyUrl = customProxyInput.value.trim();
     const selectedModel = modelSelect.value;
     const targetLang = defaultTargetLang.value;
     const tone = defaultTone.value;
@@ -114,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chrome.storage.local.set({
       apiKey,
+      customProxyUrl,
       selectedModel,
       defaultSourceLang: "auto",
       defaultTargetLang: targetLang,

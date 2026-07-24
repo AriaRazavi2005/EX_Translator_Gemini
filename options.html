@@ -30,6 +30,13 @@
           </div>
         </div>
 
+        <!-- Anti-Sanction Custom Proxy Input -->
+        <div class="field-group">
+          <label for="custom-proxy-input">🌐 آدرس آندپوینت / ریورس پرکسی (جهت دور زدن تحریم و فیلترینگ):</label>
+          <input type="text" id="custom-proxy-input" placeholder="https://generativelanguage.googleapis.com" dir="ltr">
+          <span class="field-hint">در صورت عدم استفاده از فیلترشکن، می‌توانید آدرس Cloudflare Worker یا پرکسی اختصاصی خود را وارد کنید.</span>
+        </div>
+
         <div class="action-row">
           <button id="verify-key-btn" class="primary-btn">
             <span>🔄 تست اتصال و لیست‌گیری آنلاین مدل‌ها</span>
@@ -87,6 +94,24 @@
             <span class="checkbox-label">نمایش آیکون پاپ‌آپ شناور هنگام انتخاب متن در صفحات وب</span>
           </label>
         </div>
+      </section>
+
+      <!-- Section 4: Cloudflare Worker Guide -->
+      <section class="settings-section">
+        <h2>🛡️ راهنمای ساخت Cloudflare Worker رایگان جهت دور زدن تحریم</h2>
+        <p class="section-desc">اگر نمی‌خواهید از فیلترشکن استفاده کنید، می‌توانید اسکریپت ساده زیر را در Cloudflare Workers (رایگان) قرار دهید و آدرس آن را در فیلد پرکسی بالا وارد کنید:</p>
+        <pre class="code-block" dir="ltr">export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    url.hostname = 'generativelanguage.googleapis.com';
+    const modifiedRequest = new Request(url.toString(), {
+      method: request.method,
+      headers: request.headers,
+      body: request.body
+    });
+    return fetch(modifiedRequest);
+  }
+};</pre>
       </section>
 
       <!-- Save Bar -->

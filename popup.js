@@ -41,7 +41,20 @@ document.addEventListener("DOMContentLoaded", () => {
     technical: "تخصصی، علمی و متناسب با اصطلاحات رایج فن و دانش."
   };
 
-  // Helper to sanitize translation output from LLM clutter
+  // RTL vs LTR Detection
+  function detectTextDirection(text) {
+    if (!text) return "rtl";
+    const rtlRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+    return rtlRegex.test(text) ? "rtl" : "ltr";
+  }
+
+  function applyTextDirection(element, text) {
+    if (!element) return;
+    const dir = detectTextDirection(text);
+    element.setAttribute("dir", dir);
+    element.style.textAlign = dir === "rtl" ? "right" : "left";
+  }
+
   function sanitizeTranslationText(rawText) {
     if (!rawText) return "";
     let clean = rawText.trim();
@@ -84,9 +97,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Textarea Input Events
   sourceText.addEventListener("input", () => {
-    const len = sourceText.value.length;
+    const val = sourceText.value;
+    const len = val.length;
     charCount.innerText = `${len} کاراکتر`;
     clearTextBtn.style.display = len > 0 ? "block" : "none";
+    applyTextDirection(sourceText, val);
   });
 
   clearTextBtn.addEventListener("click", () => {
@@ -94,6 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     charCount.innerText = "0 کاراکتر";
     clearTextBtn.style.display = "none";
     outputText.innerHTML = `<div class="placeholder-text">ترجمه در این قسمت به صورت زنده استریم می‌شود...</div>`;
+    applyTextDirection(sourceText, "");
   });
 
   // Swap Languages
@@ -182,13 +198,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const systemPrompt = `SYSTEM INSTRUCTION: You are a strict, ultra-precise direct translator from ${sourceLangName} into ${targetLangName}.
 CRITICAL CONSTRAINTS:
-- Output ONLY the pure, final translated text.
-- NEVER include markdown code fences (NO \`\`\`).
-- NEVER include conversational preambles or introductions (NO "Here is the translation:").
-- NEVER include explanations, footnotes, or pronunciation guides.
-- Tone requirement: ${toneDesc}`;
+1. Output ONLY the pure, final translated text.
+2. NEVER include markdown code fences (NO \`\`\`).
+3. NEVER include conversational preambles or introductions (NO "Here is the translation:").
+4. NEVER include explanatory notes, footnotes, or pronunciation guides.
+5. PROPER NOUNS & BRAND NAMES RULE: For company names, software, tools, technologies, famous person names, or technical brand names, provide the translation/transliteration followed by the original English name in parentheses, e.g., 'گوگل (Google)', 'پایتون (Python)', 'مایکروسافت (Microsoft)', 'مایکل (Michael)'.
+6. Tone requirement: ${toneDesc}`;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+      let baseUrl = settings.customProxyUrl ? settings.customProxyUrl.trim().replace(/\/+$/, '') : "https://generativelanguage.googleapis.com";
+      const url = `${baseUrl}/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -238,10 +256,12 @@ CRITICAL CONSTRAINTS:
               const textPiece = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
               if (textPiece) {
                 fullTranslation += textPiece;
-                outputText.innerText = sanitizeTranslationText(fullTranslation);
+                const cleanText = sanitizeTranslationText(fullTranslation);
+                outputText.innerText = cleanText;
+                applyTextDirection(outputText, cleanText);
               }
             } catch (e) {
-              // Ignore partial JSON chunks
+              // Ignore partial JSON
             }
           }
         }
@@ -252,6 +272,7 @@ CRITICAL CONSTRAINTS:
         outputText.innerText = "پاسخی از مدل دریافت نشد.";
       } else {
         outputText.innerText = sanitizedResult;
+        applyTextDirection(outputText, sanitizedResult);
         statusMsg.innerText = "ترجمه تکمیل شد ✓";
         saveToHistory(text, sanitizedResult, tgtL);
       }
@@ -292,8 +313,8 @@ CRITICAL CONSTRAINTS:
         const div = document.createElement("div");
         div.className = "history-item";
         div.innerHTML = `
-          <div class="history-src">متن: ${escapeHtml(item.source)}</div>
-          <div class="history-res">ترجمه: ${escapeHtml(item.result)}</div>
+          <div class="history-src" dir="${detectTextDirection(item.source)}">متن: ${escapeHtml(item.source)}</div>
+          <div class="history-res" dir="${detectTextDirection(item.result)}">ترجمه: ${escapeHtml(item.result)}</div>
           <div class="history-footer">
             <span class="history-time">${item.time}</span>
             <button class="mini-copy-btn" title="کپی ترجمه">📋 کپی</button>
@@ -310,7 +331,9 @@ CRITICAL CONSTRAINTS:
 
         div.addEventListener("click", () => {
           sourceText.value = item.source;
+          applyTextDirection(sourceText, item.source);
           outputText.innerText = item.result;
+          applyTextDirection(outputText, item.result);
           charCount.innerText = `${item.source.length} کاراکتر`;
           tabTranslateBtn.click();
         });

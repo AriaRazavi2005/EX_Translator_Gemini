@@ -29,15 +29,26 @@
     technical: "تخصصی، علمی و متناسب با اصطلاحات رایج فن و دانش."
   };
 
+  // Detect RTL vs LTR text direction
+  function detectTextDirection(text) {
+    if (!text) return "rtl";
+    const rtlRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+    return rtlRegex.test(text) ? "rtl" : "ltr";
+  }
+
+  function applyTextDirection(element, text) {
+    if (!element) return;
+    const dir = detectTextDirection(text);
+    element.setAttribute("dir", dir);
+    element.style.textAlign = dir === "rtl" ? "right" : "left";
+  }
+
   // Helper to sanitize translation output from LLM clutter
   function sanitizeTranslationText(rawText) {
     if (!rawText) return "";
     let clean = rawText.trim();
-    // Remove markdown code blocks if present (```persian ... ```)
     clean = clean.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "");
-    // Remove conversational preambles
     clean = clean.replace(/^(Here is the translation|Translation|Here's the translated text|ترجمه):\s*/i, "");
-    // Remove pronunciation notes in parentheses or markdown bold italic footnotes
     clean = clean.replace(/\n\s*\*?\([^)]*\)\*?/g, "");
     return clean.trim();
   }
@@ -174,7 +185,7 @@
     // Setup dragging
     const dragHandle = document.getElementById("gt-drag-handle");
     dragHandle.addEventListener("mousedown", (e) => {
-      if (e.target.tagName === "BUTTON") return;
+      if (e.target.tagName === "BUTTON" || e.target.tagName === "SELECT") return;
       isDragging = true;
       const rect = modalWidget.getBoundingClientRect();
       dragOffsetX = e.clientX - rect.left;
@@ -224,12 +235,16 @@
         const itemDiv = document.createElement("div");
         itemDiv.className = "gt-history-drawer-item";
         itemDiv.innerHTML = `
-          <div class="gt-h-src">${escapeHtml(item.source)}</div>
-          <div class="gt-h-res">${escapeHtml(item.result)}</div>
+          <div class="gt-h-src" dir="${detectTextDirection(item.source)}">${escapeHtml(item.source)}</div>
+          <div class="gt-h-res" dir="${detectTextDirection(item.result)}">${escapeHtml(item.result)}</div>
         `;
         itemDiv.addEventListener("click", () => {
-          document.getElementById("gt-source-content").innerText = item.source;
-          document.getElementById("gt-result-content").innerText = item.result;
+          const srcElem = document.getElementById("gt-source-content");
+          const resElem = document.getElementById("gt-result-content");
+          srcElem.innerText = item.source;
+          applyTextDirection(srcElem, item.source);
+          resElem.innerText = item.result;
+          applyTextDirection(resElem, item.result);
           toggleHistoryDrawer();
         });
         listElem.appendChild(itemDiv);
@@ -241,7 +256,9 @@
     createModalWidget();
     currentSelectedText = text;
 
-    document.getElementById("gt-source-content").innerText = text;
+    const srcElem = document.getElementById("gt-source-content");
+    srcElem.innerText = text;
+    applyTextDirection(srcElem, text);
 
     chrome.storage.local.get(["defaultTargetLang", "defaultTone"], (items) => {
       if (items.defaultTargetLang) {
@@ -251,7 +268,7 @@
         document.getElementById("gt-tone-select").value = items.defaultTone;
       }
 
-      const width = 400;
+      const width = 410;
       let left = clickX || (window.innerWidth / 2 - width / 2);
       let top = clickY || (window.innerHeight / 3);
 
@@ -335,16 +352,17 @@
       const toneDesc = TONE_PROMPTS[tone] || TONE_PROMPTS.general;
       const targetLangName = LANG_NAMES[targetLang] || targetLang;
 
-      // ULTRA STRICT SYSTEM PROMPT TO PREVENT FILLER OR MARKDOWN
       const systemPrompt = `SYSTEM INSTRUCTION: You are a strict, ultra-precise direct translator into ${targetLangName}.
 CRITICAL CONSTRAINTS:
-- Output ONLY the pure, final translated text.
-- NEVER include markdown code fences (NO \`\`\`).
-- NEVER include conversational preambles or introductions (NO "Here is the translation:").
-- NEVER include explanations, footnotes, or pronunciation guides.
-- Tone requirement: ${toneDesc}`;
+1. Output ONLY the pure, final translated text.
+2. NEVER include markdown code fences (NO \`\`\`).
+3. NEVER include conversational preambles or introductions (NO "Here is the translation:").
+4. NEVER include explanatory notes, footnotes, or pronunciation guides.
+5. PROPER NOUNS & BRAND NAMES RULE: For company names, software, tools, technologies, famous person names, or technical brand names, provide the translation/transliteration followed by the original English name in parentheses, e.g., 'گوگل (Google)', 'پایتون (Python)', 'مایکروسافت (Microsoft)', 'مایکل (Michael)'.
+6. Tone requirement: ${toneDesc}`;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+      let baseUrl = settings.customProxyUrl ? settings.customProxyUrl.trim().replace(/\/+$/, '') : "https://generativelanguage.googleapis.com";
+      const url = `${baseUrl}/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -392,10 +410,12 @@ CRITICAL CONSTRAINTS:
               const textPiece = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
               if (textPiece) {
                 fullTranslation += textPiece;
-                resElem.innerText = sanitizeTranslationText(fullTranslation);
+                const cleanText = sanitizeTranslationText(fullTranslation);
+                resElem.innerText = cleanText;
+                applyTextDirection(resElem, cleanText);
               }
             } catch (e) {
-              // Ignore partial JSON parse errors
+              // Ignore partial JSON
             }
           }
         }
@@ -406,6 +426,7 @@ CRITICAL CONSTRAINTS:
         resElem.innerText = "ترجمه‌ای دریافت نشد.";
       } else {
         resElem.innerText = sanitizedResult;
+        applyTextDirection(resElem, sanitizedResult);
         saveToHistory(text, sanitizedResult, targetLang);
       }
 
