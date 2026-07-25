@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تنطیمات دستیار هوشمند Gemini</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="options-container">
+    <header class="options-header">
+      <div class="brand">
+        <span class="sparkle">✦</span>
+        <h1>تنطیمات دستیار هوشمند Gemini</h1>
+      </div>
+      <span class="version-tag">v1.2.0</span>
+    </header>
+
+    <main class="options-main">
+      <!-- ============================ API key ============================ -->
+      <section class="settings-section">
+        <h2>🔑 کلید API گوگل</h2>
+        <p class="section-desc">
+          کلید خود را از Google AI Studio بسازید و اینجا وارد کنید. کلید فقط روی مرورگر خودتان ذخیره می‌شود.
+        </p>
+
+        <div class="field-group">
+          <label for="api-key-input">کلید API</label>
+          <div class="input-with-btn">
+            <input id="api-key-input" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false" />
+            <button id="toggle-key-visibility" class="sec-btn" title="نمایش / پنهان کردن">👁️</button>
+            <button id="verify-key-btn" class="primary-btn">بررسی کلید</button>
+          </div>
+          <div id="api-status-box" class="status-box"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="model-select">مدل مورد استفاده</label>
+          <select id="model-select">
+            <option value="gemini-flash-latest">gemini-flash-latest</option>
+          </select>
+          <p class="field-hint">بعد از بررسی موفق کلید، لیست مدل‌های مجاز حساب شما اینجا بارگزاری می‌شود.</p>
+        </div>
+
+        <div class="field-group">
+          <label for="custom-proxy-input">آدرس پروکسی اختیاری</label>
+          <input id="custom-proxy-input" type="text" placeholder="https://my-proxy.example.com" spellcheck="false" />
+          <p class="field-hint">اگر دسترسی مستقیم به گوگل ممکن نیست، آدرس یک ریورس پروکسی سازگار را وارد کنید. خالی بماند تا مستقیم وصل شود.</p>
+        </div>
+      </section>
+
+      <!-- ========================== Preferences ========================== -->
+      <section class="settings-section">
+        <h2>⚙️ پیش‌فرض‌ها</h2>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="default-mode">عملکرد پیش‌فرض</label>
+            <select id="default-mode"></select>
+          </div>
+
+          <div class="field-group">
+            <label for="default-target-lang">زبان مقصد پیش‌فرض</label>
+            <select id="default-target-lang"></select>
+          </div>
+
+          <div class="field-group">
+            <label for="default-tone">لحن پیش‌فرض</label>
+            <select id="default-tone">
+              <option value="general">عمومی</option>
+              <option value="formal">رسمی</option>
+              <option value="informal">صمیمانه</option>
+              <option value="technical">تخصصی</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-container">
+            <input id="auto-tooltip-checkbox" type="checkbox" />
+            <span class="checkbox-label">نمایش دکمه شناور پس از انتخاب متن در صفحات</span>
+          </label>
+
+          <label class="checkbox-container">
+            <input id="auto-dictionary-checkbox" type="checkbox" />
+            <span class="checkbox-label">اگر فقط یک کلمه انتخاب شد، خودکار حالت دیکشنری اجرا شود</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- =========================== Glossary =========================== -->
+      <section class="settings-section">
+        <h2>📒 واژه‌نامه اختصاصی</h2>
+        <p class="section-desc">
+          معادل‌های دلخواه خود را ثبت کنید. هر وقت این واژه‌ها در متن ورودی باشند، مدل مجبور است دقیقاً همین معادل را به کار ببرد.
+        </p>
+
+        <div class="glossary-add-row">
+          <input id="glossary-source" type="text" placeholder="واژه مبدأ (مانند Kubernetes)" spellcheck="false" />
+          <span class="arrow">→</span>
+          <input id="glossary-target" type="text" placeholder="معادل دلخواه (مانند کوبرنتیز)" />
+          <button id="glossary-add-btn" class="primary-btn">افزودن</button>
+        </div>
+
+        <div id="glossary-list" class="glossary-list"></div>
+        <p class="field-hint" id="glossary-count"></p>
+      </section>
+
+      <!-- ============================= Cache ============================= -->
+      <section class="settings-section">
+        <h2>⚡ حافطه پاسخ‌ها</h2>
+        <p class="section-desc">
+          پاسخ درخواست‌های تکراری روی دستگاه شما نگه داشته می‌شود تا فوری باشند و از سهمیه API مصرف نکنند.
+        </p>
+
+        <div class="checkbox-group">
+          <label class="checkbox-container">
+            <input id="enable-cache-checkbox" type="checkbox" />
+            <span class="checkbox-label">فعال بودن حافطه پاسخ‌ها</span>
+          </label>
+        </div>
+
+        <div class="input-with-btn">
+          <span id="cache-stats" class="cache-stats">…</span>
+          <button id="clear-cache-btn" class="sec-btn">پاک کردن حافطه</button>
+        </div>
+        <p class="field-hint">حالت «بازنویسی» همیشه تازه اجرا می‌شود و در حافطه ذخیره نمی‌شود.</p>
+      </section>
+
+      <!-- =========================== Shortcuts =========================== -->
+      <section class="settings-section">
+        <h2>⌨️ میانبرهای صفحه‌کلید</h2>
+
+        <div class="shortcut-table">
+          <div class="shortcut-row">
+            <kbd>Alt + T</kbd>
+            <span>ترجمه متن انتخاب‌شده در هر صفحه‌ای</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>Alt + Shift + T</kbd>
+            <span>باز کردن پنجره افزونه</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>Ctrl + Enter</kbd>
+            <span>اجرای درخواست در پنجره افزونه</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>Esc</kbd>
+            <span>توقف درخواست یا بستن پنجره</span>
+          </div>
+        </div>
+
+        <p class="field-hint">
+          برای تغییر میانبرها این آدرس را در مرورگر باز کنید:
+          <span class="code-block">chrome://extensions/shortcuts</span>
+        </p>
+      </section>
+    </main>
+
+    <div class="save-bar">
+      <button id="save-settings-btn" class="save-btn">💾 ذخیره تنطیمات</button>
+      <span id="save-msg" class="save-msg"></span>
+    </div>
+  </div>
+
+  <!-- The shared core must load before the options logic. -->
+  <script src="../shared/shared.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
