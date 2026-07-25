@@ -1,70 +1,82 @@
-const DEFAULT_API_KEY = "";
+// Service worker for Gemini AI Translator
 
-chrome.runtime.onInstalled.addListener(async () => {
-  // Create Context Menu Item
-  chrome.contextMenus.create({
-    id: "translate_gemini_selection",
-    title: "ترجمه با هوش مصنوعی Gemini ✦",
-    contexts: ["selection"]
+const DEFAULT_API_KEY = "";
+const CONTEXT_MENU_ID = "translate_gemini_selection";
+const CONTENT_SCRIPT_FILES = ["shared.js", "content.js"];
+
+const DEFAULT_SETTINGS = {
+  apiKey: DEFAULT_API_KEY,
+  selectedModel: "gemini-flash-latest",
+  defaultSourceLang: "auto",
+  defaultTargetLang: "fa",
+  defaultTone: "general",
+  autoShowTooltip: true,
+  customProxyUrl: "",
+  history: []
+};
+
+chrome.runtime.onInstalled.addListener(() => {
+  // Context menu entry for the current text selection.
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: CONTEXT_MENU_ID,
+      title: "ترجمه با هوش مصنوعی Gemini ✦",
+      contexts: ["selection"]
+    });
   });
 
-  // Initialize storage defaults if empty
-  chrome.storage.local.get([
-    "apiKey",
-    "selectedModel",
-    "defaultSourceLang",
-    "defaultTargetLang",
-    "defaultTone",
-    "autoShowTooltip",
-    "history"
-  ], (result) => {
-    let update = {};
-    if (!result.apiKey) update.apiKey = DEFAULT_API_KEY;
-    if (!result.selectedModel) update.selectedModel = "gemini-flash-latest";
-    if (!result.defaultSourceLang) update.defaultSourceLang = "auto";
-    if (!result.defaultTargetLang) update.defaultTargetLang = "fa";
-    if (!result.defaultTone) update.defaultTone = "general";
-    if (result.autoShowTooltip === undefined) update.autoShowTooltip = true;
-    if (!result.history) update.history = [];
+  // Seed any missing default without overwriting existing user values.
+  chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS), (result) => {
+    const update = {};
+
+    Object.keys(DEFAULT_SETTINGS).forEach((key) => {
+      if (result[key] === undefined) {
+        update[key] = DEFAULT_SETTINGS[key];
+      }
+    });
 
     if (Object.keys(update).length > 0) {
       chrome.storage.local.set(update, () => {
-        console.log("Gemini Translator defaults initialized.");
+        console.log("Gemini Translator defaults initialized:", Object.keys(update));
       });
     }
   });
 });
 
-// Context Menu click handler
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "translate_gemini_selection" && info.selectionText) {
-    if (tab && tab.id) {
-      chrome.tabs.sendMessage(tab.id, {
-        action: "TRANSLATE_SELECTION",
-        text: info.selectionText.trim()
-      }).catch(err => {
-        console.warn("Could not send message to tab, injecting script...", err);
-        // Script might not be loaded yet, inject and retry
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ["content.js"]
-        }).then(() => {
-          chrome.tabs.sendMessage(tab.id, {
-            action: "TRANSLATE_SELECTION",
-            text: info.selectionText.trim()
-          });
-        });
-      });
-    }
+/** Sends the translate command, injecting the content scripts when needed. */
+async function requestTranslation(tabId, text) {
+  const message = { action: "TRANSLATE_SELECTION", text };
+
+  try {
+    await chrome.tabs.sendMessage(tabId, message);
+    return;
+  } catch (err) {
+    console.warn("Content script not reachable, injecting…", err && err.message);
   }
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: CONTENT_SCRIPT_FILES
+    });
+    await chrome.tabs.sendMessage(tabId, message);
+  } catch (injectErr) {
+    console.error("Could not inject the Gemini Translator content script.", injectErr);
+  }
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== CONTEXT_MENU_ID) return;
+  if (!info.selectionText || !tab || !tab.id) return;
+
+  requestTranslation(tab.id, info.selectionText.trim());
 });
 
-// Listener for background requests from content scripts or popup if needed
+// Allow other extension pages to read the full settings object.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "GET_SETTINGS") {
-    chrome.storage.local.get(null, (items) => {
-      sendResponse(items);
-    });
-    return true; // Keep channel open for async response
+  if (request && request.action === "GET_SETTINGS") {
+    chrome.storage.local.get(null, (items) => sendResponse(items));
+    return true; // Keep the channel open for the async response.
   }
+  return false;
 });

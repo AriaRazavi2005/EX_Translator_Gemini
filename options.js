@@ -1,5 +1,12 @@
-// Options JavaScript for Gemini AI Translator
+// Options page controller for Gemini AI Translator
+// Requires shared.js to be loaded first (see options.html).
 document.addEventListener("DOMContentLoaded", () => {
+  const S = window.GTShared;
+  if (!S) {
+    console.error("[Gemini Translator] shared.js was not loaded; options page aborted.");
+    return;
+  }
+
   const apiKeyInput = document.getElementById("api-key-input");
   const customProxyInput = document.getElementById("custom-proxy-input");
   const toggleKeyVisibilityBtn = document.getElementById("toggle-key-visibility");
@@ -12,34 +19,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveSettingsBtn = document.getElementById("save-settings-btn");
   const saveMsg = document.getElementById("save-msg");
 
-  // Load Saved Preferences
-  chrome.storage.local.get(null, (items) => {
+  // ---------------------------------------------------------------------------
+  // Load saved preferences
+  // ---------------------------------------------------------------------------
+
+  S.getSettings().then((items) => {
     if (items.apiKey) apiKeyInput.value = items.apiKey;
     if (items.customProxyUrl) customProxyInput.value = items.customProxyUrl;
     if (items.defaultTargetLang) defaultTargetLang.value = items.defaultTargetLang;
     if (items.defaultTone) defaultTone.value = items.defaultTone;
     if (items.autoShowTooltip !== undefined) autoTooltipCheckbox.checked = items.autoShowTooltip;
 
-    const savedModel = items.selectedModel || "gemini-flash-latest";
+    const savedModel = items.selectedModel || S.DEFAULT_MODEL;
 
-    // Auto verify & fetch live models if API key exists
+    // Auto-verify and refresh the model list when a key is already stored.
     if (items.apiKey) {
       fetchLiveModels(items.apiKey, savedModel, items.customProxyUrl);
     }
   });
 
-  // Toggle API key visibility
+  // ---------------------------------------------------------------------------
+  // API key visibility
+  // ---------------------------------------------------------------------------
+
   toggleKeyVisibilityBtn.addEventListener("click", () => {
-    if (apiKeyInput.type === "password") {
-      apiKeyInput.type = "text";
-      toggleKeyVisibilityBtn.innerText = "🙈";
-    } else {
-      apiKeyInput.type = "password";
-      toggleKeyVisibilityBtn.innerText = "👁️";
-    }
+    const hidden = apiKeyInput.type === "password";
+    apiKeyInput.type = hidden ? "text" : "password";
+    toggleKeyVisibilityBtn.innerText = hidden ? "🙈" : "👁️";
   });
 
-  // Verify API Key and Fetch Online Models from Google or Custom Proxy
+  // ---------------------------------------------------------------------------
+  // Verify key and fetch the live model list
+  // ---------------------------------------------------------------------------
+
   verifyKeyBtn.addEventListener("click", () => {
     const key = apiKeyInput.value.trim();
     if (!key) {
@@ -52,22 +64,27 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchLiveModels(apiKey, currentSelectedModel, proxyUrl) {
     showStatus("در حال دریافت لیست مدل‌های فعال از گوگل...", "info");
 
-    let baseUrl = proxyUrl ? proxyUrl.trim().replace(/\/+$/, '') : "https://generativelanguage.googleapis.com";
+    const baseUrl = S.resolveBaseUrl(proxyUrl);
+    const url = baseUrl + "/v1beta/models?key=" + encodeURIComponent(apiKey);
 
     try {
-      const response = await fetch(`${baseUrl}/v1beta/models?key=${apiKey}`);
-      
+      const response = await fetch(url);
+
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `پاسخ ناموفق (${response.status})`);
+        const message =
+          (errData && errData.error && errData.error.message) ||
+          "پاسخ ناموفق (" + response.status + ")";
+        throw new Error(message);
       }
 
       const data = await response.json();
       const models = data.models || [];
 
-      // Filter models that support content generation
-      const genModels = models.filter(m => 
-        m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+      const genModels = models.filter(
+        (m) =>
+          m.supportedGenerationMethods &&
+          m.supportedGenerationMethods.includes("generateContent")
       );
 
       if (genModels.length === 0) {
@@ -75,15 +92,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Populate dropdown
       modelSelect.innerHTML = "";
       let foundSelected = false;
 
       genModels.forEach((m) => {
-        const modelId = m.name.replace(/^models\//, ""); // e.g. gemini-flash-latest
+        const modelId = m.name.replace(/^models\//, "");
         const option = document.createElement("option");
         option.value = modelId;
-        option.innerText = `${modelId} - ${m.displayName || modelId}`;
+        option.innerText = modelId + " - " + (m.displayName || modelId);
 
         if (modelId === currentSelectedModel) {
           option.selected = true;
@@ -93,41 +109,39 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (!foundSelected && modelSelect.options.length > 0) {
-        modelSelect.selectedIndex = 0; // Default to first available
+        modelSelect.selectedIndex = 0;
       }
 
-      showStatus(`✓ کلید API معتبر است! ${genModels.length} مدل آنلاین شناسایی و دریافت شد.`, "success");
-
+      showStatus(
+        "✓ کلید API معتبر است! " + genModels.length + " مدل آنلاین شناسایی و دریافت شد.",
+        "success"
+      );
     } catch (err) {
-      showStatus(`❌ خطا در بررسی کلید API: ${err.message}`, "error");
+      showStatus("❌ خطا در بررسی کلید API: " + err.message, "error");
     }
   }
 
   function showStatus(text, type) {
     apiStatusBox.innerText = text;
-    apiStatusBox.className = `status-box ${type}`;
+    apiStatusBox.className = "status-box " + type;
   }
 
-  // Save Settings
-  saveSettingsBtn.addEventListener("click", () => {
-    const apiKey = apiKeyInput.value.trim();
-    const customProxyUrl = customProxyInput.value.trim();
-    const selectedModel = modelSelect.value;
-    const targetLang = defaultTargetLang.value;
-    const tone = defaultTone.value;
-    const autoTooltip = autoTooltipCheckbox.checked;
+  // ---------------------------------------------------------------------------
+  // Save settings
+  // ---------------------------------------------------------------------------
 
-    chrome.storage.local.set({
-      apiKey,
-      customProxyUrl,
-      selectedModel,
+  saveSettingsBtn.addEventListener("click", async () => {
+    await S.setStorage({
+      apiKey: apiKeyInput.value.trim(),
+      customProxyUrl: customProxyInput.value.trim(),
+      selectedModel: modelSelect.value,
       defaultSourceLang: "auto",
-      defaultTargetLang: targetLang,
-      defaultTone: tone,
-      autoShowTooltip: autoTooltip
-    }, () => {
-      saveMsg.innerText = "تنظیمات با موفقیت ذخیره شد! ✓";
-      setTimeout(() => saveMsg.innerText = "", 2500);
+      defaultTargetLang: defaultTargetLang.value,
+      defaultTone: defaultTone.value,
+      autoShowTooltip: autoTooltipCheckbox.checked
     });
+
+    saveMsg.innerText = "تنظیمات با موفقیت ذخیره شد! ✓";
+    setTimeout(() => (saveMsg.innerText = ""), 2500);
   });
 });

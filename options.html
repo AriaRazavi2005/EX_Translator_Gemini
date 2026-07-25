@@ -13,7 +13,7 @@
         <span class="sparkle">✦</span>
         <h1>تنظیمات مترجم Gemini AI</h1>
       </div>
-      <div class="version-tag">نسخه ۱.۰.۰</div>
+      <div class="version-tag">نسخه ۱.۱.۰</div>
     </header>
 
     <main class="options-main">
@@ -74,6 +74,15 @@
             <option value="ar">عربی (Arabic)</option>
             <option value="fr">فرانسوی (French)</option>
             <option value="de">آلمانی (German)</option>
+            <option value="es">اسپانیایی (Spanish)</option>
+            <option value="it">ایتالیایی (Italian)</option>
+            <option value="ru">روسی (Russian)</option>
+            <option value="tr">ترکی استانبولی (Turkish)</option>
+            <option value="zh">چینی (Chinese)</option>
+            <option value="ja">ژاپنی (Japanese)</option>
+            <option value="ko">کره‌ای (Korean)</option>
+            <option value="hi">هندی (Hindi)</option>
+            <option value="pt">پرتغالی (Portuguese)</option>
           </select>
         </div>
 
@@ -96,7 +105,16 @@
         </div>
       </section>
 
-      <!-- Section 4: Cloudflare Worker Guide -->
+      <!-- Section 4: Keyboard shortcuts -->
+      <section class="settings-section">
+        <h2>⌨️ میانبرهای کیبورد</h2>
+        <ul class="section-desc">
+          <li><strong>Ctrl + Enter</strong> (یا <strong>Cmd + Enter</strong> در مک): شروع ترجمه از داخل کادر متن در پاپ‌آپ</li>
+          <li><strong>Esc</strong>: بستن ویجت شناور ترجمه روی صفحات وب</li>
+        </ul>
+      </section>
+
+      <!-- Section 5: Cloudflare Worker Guide -->
       <section class="settings-section">
         <h2>🛡️ راهنمای ساخت Cloudflare Worker رایگان جهت دور زدن تحریم</h2>
         <p class="section-desc">اگر نمی‌خواهید از فیلترشکن استفاده کنید، می‌توانید اسکریپت ساده زیر را در Cloudflare Workers (رایگان) قرار دهید و آدرس آن را در فیلد پرکسی بالا وارد کنید:</p>
@@ -124,6 +142,7 @@
     </main>
   </div>
 
+  <script src="shared.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
