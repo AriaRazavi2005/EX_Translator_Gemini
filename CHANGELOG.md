@@ -1,60 +1,45 @@
-# تاریخچه تغییرات | Changelog
+# Changelog | تاریخچه تغییرات
 
-همه تغییرات قابل توجه این پروژه در این فایل ثبت می‌شود.
+All notable changes are documented here. This project follows [Semantic Versioning](https://semver.org/).
 
-قالب بر اساس [Keep a Changelog](https://keepachangelog.com/) و نسخه‌گذاری بر اساس [Semantic Versioning](https://semver.org/) است.
+## [1.2.1] - 2026-07-25
 
----
+### Fixed
+- Reworked the in-page widget layout shown in dictionary mode.
+- Stopped forcing RTL direction on every child element.
+- Added bidirectional plaintext rendering for mixed Persian/English output, examples, names, and code.
+- Isolated buttons and selects from host-page CSS and prevented stretched or collapsed controls.
+- Constrained the floating widget to the viewport and moved scrolling into its body.
+- Replaced physical left/right spacing with logical RTL/LTR-safe properties.
+- Corrected Persian spelling across popup and options UI.
+
+### Changed
+- Rewrote README as a professional bilingual English/Persian repository page.
+- Added standard license, contribution, security, issue, and pull-request files.
+- Cleaned root-level repository configuration.
 
 ## [1.2.0] - 2026-07-25
 
-### افزوده شد
-- **شش عملکرد هوش مصنوعی**: ترجمه، دیکشنری، خلاصه‌سازی، اصلاح گرامر، بازنویسی و توضیح ساده، هر یک با پرامپت اختصاصی
-- **واژه‌نامه اختصاصی** تا ۳۰۰ جفت واژه با ویرایشگر درجا در صفحه تنطیمات
-- **حافطه پاسخ‌ها** با سیاست LRU (۲۰۰ مورد)، نشان «از حافطه»، شمارنده و دکمه پاک‌سازی
-- **میانبر سراسری `Alt + T`** برای ترجمه متن انتخاب‌شده و `Alt + Shift + T` برای باز کردن پنجره
-- **دکمه توقف درخواست** در پنجره افزونه و پنجره شناور؛ متن تولیدشده حفظ می‌شود
-- **جست‌وجوی زنده در تاریخچه** همراه فیلتر عملکرد و برچسب عملکرد روی هر ردیف
-- **دیکشنری خودکار** برای انتخاب تک‌کلمه، قابل خاموش کردن از تنطیمات
-- **تنطیم عملکرد پیش‌فرض** و جدول مرجع میانبرها در صفحه تنطیمات
+### Added
+- Six AI modes: translation, dictionary, summarization, grammar correction, rewriting, and simple explanation.
+- Custom glossary editor with up to 300 entries.
+- Local LRU response cache with up to 200 entries.
+- Global selection shortcut, stream cancellation, searchable history, and automatic dictionary mode.
 
-### تغییر کرد
-- **پوشه‌بندی حرفه‌ای پروژه**: تمام کد به `src/` منتقل شد با پوشه‌های `shared/`، `background/`، `content/`، `popup/` و `options/`
-- `background.js` به `src/background/service-worker.js` تغییر نام داد
-- مسیرهای `manifest.json` و تزریق اسکریپت با ساختار جدید هماهنگ شدند
-- تاریخچه اکنون عملکرد هر مورد را هم ذخیره می‌کند (رکوردهای قدیمی خودکار مهاجرت می‌کنند)
-- پاکسازی خروجی مدل اکنون متناسب با عملکرد انجام می‌شود تا ساختار دیکشنری و خلاصه حفظ شود
-- کنترل‌های بی‌ارتباط با عملکرد انتخاب‌شده غیرفعال می‌شوند (مانند زبان مقصد در اصلاح گرامر)
-- README با درخت پروژه، جدول عملکردها و بخش‌های واژه‌نامه و حافطه بازنویسی شد
-
----
+### Changed
+- Moved extension source into `src/shared`, `src/background`, `src/content`, `src/popup`, and `src/options`.
+- Added a shared history schema and mode-aware output cleanup.
 
 ## [1.1.0] - 2026-07-25
 
-### افزوده شد
-- **میانبر `Ctrl + Enter`** برای اجرای ترجمه در پنجره افزونه و `Esc` برای بستن
-- **پشتیبانی از ۱۴ زبان** (افزودن ایتالیایی، روسی، ترکی، کره‌ای، هندی و پرتغالی)
-- **حذف تک‌موردی تاریخچه** در پنجره افزونه و پنجره شناور
-- **فایل مشترک `shared.js`** برای حذف کد تکراری بین پنجره، تنطیمات و کانتنت اسکریپت
-- **پشتیبانی از پروکسی اختیاری** برای دور زدن تحریم
-- **CHANGELOG.md** و README کامل فارسی
+### Added
+- `Ctrl/Cmd + Enter` execution shortcut and `Esc` closing behavior.
+- 14 supported target languages.
+- Per-item history deletion, optional proxy support, and a shared core module.
 
-### درست شد
-- مشکل قطع شدن استریم وقتی یک بلوک SSE وسط یک خط تقسیم می‌شد
-- درخواست‌های موازی اکنون با `AbortController` لغو می‌شوند
-- خطاهای API با پیام فارسی مشخص نمایش داده می‌شوند
-- تزریق خودکار کانتنت اسکریپت در تب‌هایی که قبل از نصب باز بودند
-- جلوگیری از تزریق HTML در رندر تاریخچه با escape کامل
-- یکدست شدن ساختار تاریخچه بین پنجره و کانتنت اسکریپت
+### Fixed
+- Buffered SSE parsing, request cancellation, API error messages, safe history rendering, and on-demand script injection.
 
----
+## [1.0.0]
 
-## [1.0.0] - نسخه اولیه
-
-### افزوده شد
-- ترجمه متن با Google Gemini و استریم زنده
-- دکمه شناور و پنجره قابل جابجایی روی صفحات
-- پنجره افزونه با تب ترجمه و تاریخچه
-- صفحه تنطیمات با اعتبارسنجی کلید API
-- خوانش صوتی و کپی نتیجه
-- منوی راست‌کلیک برای متن انتخاب‌شده
+- Initial Gemini translation extension with streaming, floating widget, popup, settings, speech, copy, history, and context-menu integration.
