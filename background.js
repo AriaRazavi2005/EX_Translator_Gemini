@@ -2,6 +2,7 @@
 
 const DEFAULT_API_KEY = "";
 const CONTEXT_MENU_ID = "translate_gemini_selection";
+const TRANSLATE_COMMAND = "translate-selection";
 const CONTENT_SCRIPT_FILES = ["shared.js", "content.js"];
 
 const DEFAULT_SETTINGS = {
@@ -10,8 +11,12 @@ const DEFAULT_SETTINGS = {
   defaultSourceLang: "auto",
   defaultTargetLang: "fa",
   defaultTone: "general",
+  defaultMode: "translate",
   autoShowTooltip: true,
+  autoDictionary: true,
+  enableCache: true,
   customProxyUrl: "",
+  glossary: [],
   history: []
 };
 
@@ -43,7 +48,11 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-/** Sends the translate command, injecting the content scripts when needed. */
+/**
+ * Sends the translate command, injecting the content scripts when needed.
+ * When `text` is omitted the content script falls back to the live DOM
+ * selection, which is what the keyboard shortcut relies on.
+ */
 async function requestTranslation(tabId, text) {
   const message = { action: "TRANSLATE_SELECTION", text };
 
@@ -70,6 +79,21 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!info.selectionText || !tab || !tab.id) return;
 
   requestTranslation(tab.id, info.selectionText.trim());
+});
+
+// Global keyboard shortcut (Alt+T by default) translates the current selection.
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== TRANSLATE_COMMAND) return;
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) return;
+
+    // No text is passed: the content script reads the live selection itself.
+    await requestTranslation(tab.id);
+  } catch (err) {
+    console.error("Could not handle the translate shortcut.", err);
+  }
 });
 
 // Allow other extension pages to read the full settings object.
