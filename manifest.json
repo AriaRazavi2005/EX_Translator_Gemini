@@ -20,7 +20,7 @@
     "<all_urls>"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
@@ -43,15 +43,15 @@
       "description": "باز کردن پنجره مترجم"
     }
   },
-  "options_page": "options.html",
+  "options_page": "src/options/options.html",
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/service-worker.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["shared.js", "content.js"],
-      "css": ["content.css"],
+      "js": ["src/shared/shared.js", "src/content/content.js"],
+      "css": ["src/content/content.css"],
       "run_at": "document_idle"
     }
   ]
