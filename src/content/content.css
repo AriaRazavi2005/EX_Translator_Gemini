@@ -1,0 +1,481 @@
+/* Gemini AI Translator Content Styles - Glassmorphism & Vazirmatn */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+
+#gt-floating-btn,
+#gt-modal-widget,
+#gt-modal-widget * {
+  box-sizing: border-box;
+  font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  direction: rtl;
+  text-align: right;
+  margin: 0;
+  padding: 0;
+}
+
+/* Floating Trigger Button */
+#gt-floating-btn {
+  position: absolute;
+  z-index: 2147483646;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36), 0 0 15px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#gt-floating-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.45), 0 0 20px rgba(99, 102, 241, 0.6);
+}
+
+.gt-sparkle {
+  color: #818cf8;
+  font-size: 14px;
+  animation: gt-pulse 1.8s infinite alternate;
+}
+
+@keyframes gt-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.2); opacity: 1; filter: drop-shadow(0 0 6px #818cf8); }
+}
+
+/* Modal Widget */
+#gt-modal-widget {
+  position: fixed;
+  z-index: 2147483647;
+  display: none;
+  width: 410px;
+  max-width: 92vw;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  overflow: hidden;
+  animation: gt-fade-in 0.25s ease-out;
+}
+
+@keyframes gt-fade-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Header */
+.gt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.18));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: move;
+  user-select: none;
+}
+
+.gt-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.gt-title .gt-icon {
+  color: #a855f7;
+  font-size: 16px;
+}
+
+.gt-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gt-action-icon {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.gt-action-icon:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Drawer */
+.gt-drawer {
+  display: none;
+  background: rgba(30, 41, 59, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.gt-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #818cf8;
+  margin-bottom: 8px;
+}
+
+.gt-mini-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.gt-drawer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gt-history-drawer-item {
+  position: relative;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 6px 8px;
+  padding-left: 26px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.gt-history-drawer-item:hover {
+  border-color: #818cf8;
+}
+
+/* Per-item delete button inside the in-page history drawer */
+.gt-h-del {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  color: #f87171;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.gt-history-drawer-item:hover .gt-h-del {
+  opacity: 1;
+}
+
+.gt-h-del:hover {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+}
+
+.gt-h-src {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gt-h-res {
+  font-size: 12px;
+  color: #f1f5f9;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mode badge on a history row */
+.gt-h-meta {
+  margin-top: 3px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.gt-empty-history {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* Body Content */
+.gt-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Source Box */
+.gt-source-box {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.gt-box-title {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.gt-source-text {
+  font-size: 13px;
+  color: #cbd5e1;
+  max-height: 100px;
+  overflow-y: auto;
+  word-break: break-word;
+  line-height: 1.5;
+  resize: vertical; /* RESIZABLE BOX */
+}
+
+/* AI action mode picker */
+.gt-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(168, 85, 247, 0.14));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.gt-mode-row label {
+  font-size: 11px;
+  color: #c7d2fe;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.gt-mode-row select {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 8px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Controls Bar */
+.gt-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 41, 59, 0.4);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gt-control-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  transition: opacity 0.15s ease;
+}
+
+/* A control the active mode ignores */
+.gt-control-item.gt-disabled {
+  opacity: 0.4;
+}
+
+.gt-control-item label {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.gt-control-item select {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.gt-control-item select:disabled {
+  cursor: not-allowed;
+}
+
+.gt-mini-btn {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.gt-mini-btn:hover {
+  transform: rotate(45deg);
+}
+
+/* Result Box */
+.gt-result-box {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.gt-result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #818cf8;
+  margin-bottom: 8px;
+}
+
+/* "Served from cache" indicator */
+.gt-cache-badge {
+  display: none;
+  font-size: 10px;
+  font-weight: 500;
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.gt-result-actions {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.gt-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #e2e8f0;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.gt-icon-btn:hover {
+  background: rgba(99, 102, 241, 0.3);
+  color: #fff;
+}
+
+/* Abort the running stream; only visible while streaming */
+.gt-stop-btn {
+  display: none;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 10px;
+}
+
+.gt-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+}
+
+/* RESIZABLE RESULT TEXT AREA */
+.gt-result-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #f8fafc;
+  min-height: 80px;
+  max-height: 350px;
+  overflow-y: auto;
+  resize: vertical;
+  word-break: break-word;
+  white-space: pre-wrap;
+  padding-bottom: 4px;
+}
+
+/* Loading Spinner */
+.gt-loading-spinner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 15px 0;
+}
+
+.gt-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: gt-spin 0.8s linear infinite;
+}
+
+@keyframes gt-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gt-error {
+  color: #f87171;
+  font-size: 12px;
+  line-height: 1.4;
+}
