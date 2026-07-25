@@ -158,16 +158,49 @@
 }
 
 .gt-history-drawer-item {
+  position: relative;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   padding: 6px 8px;
+  padding-left: 26px;
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
 
 .gt-history-drawer-item:hover {
   border-color: #818cf8;
+}
+
+/* Per-item delete button inside the in-page history drawer */
+.gt-h-del {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  color: #f87171;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.gt-history-drawer-item:hover .gt-h-del {
+  opacity: 1;
+}
+
+.gt-h-del:hover {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
 }
 
 .gt-h-src {

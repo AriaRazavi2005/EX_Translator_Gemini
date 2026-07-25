@@ -11,6 +11,7 @@
   --text-main: #f8fafc;
   --text-sub: #94a3b8;
   --input-bg: rgba(15, 23, 42, 0.7);
+  --danger: #f87171;
 }
 
 * {
@@ -217,7 +218,7 @@ textarea:focus {
 }
 
 .clear-btn:hover {
-  color: #f87171;
+  color: var(--danger);
 }
 
 .card-footer {
@@ -272,6 +273,20 @@ textarea:focus {
   transform: translateY(0);
 }
 
+/* Keyboard shortcut hint inside the primary button */
+.btn-hint {
+  margin-right: auto;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  padding: 2px 6px;
+  direction: ltr;
+  letter-spacing: 0.3px;
+}
+
 /* Output Card */
 .output-card {
   flex: 1;
@@ -309,11 +324,48 @@ textarea:focus {
   word-break: break-word;
 }
 
+/* Streaming loader inside the output box */
+.popup-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a5b4fc;
+  font-size: 12px;
+  padding: 10px 0;
+}
+
+.popup-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(99, 102, 241, 0.25);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: popup-spin 0.8s linear infinite;
+}
+
+@keyframes popup-spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .history-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-top: 4px;
+}
+
+/* Wrapper for the per-item copy + delete buttons */
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mini-copy-btn {
@@ -332,12 +384,36 @@ textarea:focus {
   color: #fff;
 }
 
+/* Delete a single history record */
+.mini-del-btn {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mini-del-btn:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #fff;
+}
+
 .placeholder-text {
   color: var(--text-sub);
   font-size: 12px;
   font-style: italic;
   padding: 20px 0;
   text-align: center;
+}
+
+.empty-history {
+  text-align: center;
+  color: #64748b;
+  padding: 30px 0;
+  font-size: 13px;
 }
 
 /* History Tab */
@@ -352,7 +428,7 @@ textarea:focus {
 .danger-btn {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
+  color: var(--danger);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 11px;
