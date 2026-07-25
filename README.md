@@ -1,210 +1,156 @@
-# ✦ Gemini AI Translator - Chrome Extension 🚀
+# ✦ دستیار هوشمند Gemini | Gemini AI Translator
 
-[![Chrome Manifest V3](https://img.shields.io/badge/Chrome_Extension-Manifest_V3-blue.svg?style=for-the-badge&logo=googlechrome)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Google Gemini API](https://img.shields.io/badge/AI_Engine-Google_Gemini_API-8E75B2.svg?style=for-the-badge&logo=googlegemini)](https://ai.google.dev/)
-[![Version](https://img.shields.io/badge/Version-1.1.0-6366f1.svg?style=for-the-badge)](CHANGELOG.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
-[![JavaScript](https://img.shields.io/badge/Built_With-JavaScript-F7DF1E.svg?style=for-the-badge&logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-
-A state-of-the-art, lightning-fast, and ultra-sleek **Google Chrome Extension (Manifest V3)** for instant, precise, and intelligent text translation powered by **Google Gemini AI**. Featuring real-time Server-Sent Events (SSE) response streaming, Glassmorphic UI design, resizable text boxes, proper noun preservation rules, and custom reverse-proxy / Cloudflare Worker anti-sanction bypass.
-
-> 📄 See the [CHANGELOG](CHANGELOG.md) for what changed in **v1.1.0**.
+افزونه کروم برای ترجمه و پردازش متن با هوش مصنوعی Google Gemini — با استریم زنده، دیکشنری، خلاصه‌سازی، اصلاح گرامر، واژه‌نامه اختصاصی و حافطه پاسخ‌ها.
 
 ---
 
-## 📑 Table of Contents
-- [✨ Features](#-features)
-- [⌨️ Keyboard Shortcuts](#️-keyboard-shortcuts)
-- [🌍 Supported Languages](#-supported-languages)
-- [🛠️ Architecture & File Structure](#️-architecture--file-structure)
-- [🧩 The Shared Module](#-the-shared-module)
-- [📥 Installation Guide](#-installation-guide)
-- [🔑 How to Get a Free Gemini API Key](#-how-to-get-a-free-gemini-api-key)
-- [🛡️ Anti-Sanction & Bypass Proxy Setup (Cloudflare Worker)](#️-anti-sanction--bypass-proxy-setup-cloudflare-worker)
-- [🇮🇷 راهنمای فارسی (Persian Summary)](#-راهنمای-فارسی-persian-summary)
-- [📜 License](#-license)
+## ✨ قابلیت‌ها
+
+### پردازش متن
+- **شش عملکرد هوش مصنوعی** در یک افزونه (جدول پایین)
+- **استریم زنده**: پاسخ کلمه‌به‌کلمه نمایش داده می‌شود
+- **دکمه توقف**: وسط پاسخ می‌توانید درخواست را قطع کنید و متن تولیدشده حفظ می‌شود
+- **تشخیص خودکار جهت متن** (RTL / LTR)
+- **۱۴ زبان مقصد** و تشخیص خودکار زبان مبدأ
+- **چهار لحن**: عمومی، رسمی، صمیمانه، تخصصی
+- **قاعده اسم خاص**: نام برندها و ابزارها همراه اصل انگلیسی در پرانتز می‌آید
+
+### تجربه کاربری
+- **دکمه شناور** پس از انتخاب متن در هر صفحه‌ای
+- **پنجره شناور قابل جابجایی** روی خود صفحه
+- **میانبر سراسری** برای ترجمه فوری متن انتخاب‌شده
+- **پنجره افزونه** با دو تب پردازش و تاریخچه
+- **خوانش صوتی** نتیجه (Web Speech API)
+- **تاریخچه ۵۰ موردی** با جست‌وجوی زنده، فیلتر عملکرد و حذف تک‌موردی
+- **منوی راست‌کلیک** روی متن انتخاب‌شده
+
+### هوشمندی
+- **واژه‌نامه اختصاصی**: معادل‌های اجباری خودتان را تعریف کنید
+- **حافطه پاسخ‌ها**: درخواست‌های تکراری بدون مصرف سهمیه و فوری پاسخ می‌گیرند
+- **دیکشنری خودکار**: انتخاب یک کلمه، معنی کامل می‌دهد نه ترجمه خشک
+
+### حریم خصوصی و کنترل
+- کلید API فقط در `chrome.storage.local` مرورگر خودتان ذخیره می‌شود
+- هیچ سرور واسطی در میان نیست؛ درخواست مستقیم به Google می‌رود
+- پشتیبانی از پروکسی اختیاری برای شرایط تحریم
+- اعتبارسنجی کلید و بارگزاری خودکار لیست مدل‌های مجاز حساب شما
 
 ---
 
-## ✨ Features
+## 🧩 عملکردهای هوش مصنوعی
 
-- **✦ Smart On-Page Selection Tooltip**: Highlight any text on any website to reveal a sleek floating trigger button (`✦ Translate`). Clicking it opens a draggable Glassmorphic translation widget right over the page.
-- **⚡ Real-Time Streaming Output (SSE)**: Streams translations word-by-word via Server-Sent Events for zero-latency feedback. Chunk parsing is buffered, so a payload split across two network packets never drops text.
-- **⌨️ Keyboard Shortcut**: Press `Ctrl + Enter` (or `Cmd + Enter` on macOS) inside the popup textarea to translate without reaching for the mouse.
-- **🌍 14 Target Languages**: Persian, English, Arabic, French, German, Spanish, Italian, Russian, Turkish, Chinese, Japanese, Korean, Hindi and Portuguese.
-- **🔁 Auto Re-Translate**: Changing the target language or tone in the floating widget instantly re-runs the translation.
-- **🏷️ Proper Nouns Preservation Rule**: Intelligently translates text while retaining original English terms for company names, brands, technologies, or people in parentheses (e.g. `گوگل (Google)`, `پایتون (Python)`, `مایکروسافت (Microsoft)`).
-- **📐 Resizable Text Area**: Both input and output translation boxes are vertically resizable (`resize: vertical`), preventing clipping or awkward scrollbars on long articles and code snippets.
-- **📜 Instant Webpage & Popup History**: Access your last 50 translations anytime from either the browser popup or the floating widget drawer directly on any webpage.
-- **🗑️ Per-Item History Delete**: Remove a single history record from either the popup list or the in-page drawer — no need to wipe everything.
-- **🔊 Text-to-Speech (TTS)**: Built-in high-quality voice playback with a correct BCP-47 tag for every supported language.
-- **🎭 Multi-Tone Adaptation**: Choose between General, Formal/Executive, Informal/Conversational, or Technical/Scientific translation tones.
-- **🤖 Live Dynamic Model Fetching**: Query Google's `/v1beta/models` REST endpoint live from the Options page to dynamically load and select available Gemini models.
-- **🛡️ Custom Reverse Proxy / Anti-Sanction Support**: Easily configure a custom reverse proxy URL (such as a free Cloudflare Worker) to bypass region blocks or network sanctions seamlessly without needing a VPN.
-- **🖱️ Context Menu Integration**: Right-click any selected text to immediately trigger `Translate with Gemini AI ✦`.
-- **🧩 Zero Duplication**: All translation, history and formatting logic lives in a single shared module consumed by the popup, the options page and the content script.
+| عملکرد | کارکرد | زبان مقصد | لحن | واژه‌نامه | حافطه |
+| --- | --- | :---: | :---: | :---: | :---: |
+| ✦ ترجمه | ترجمه دقیق و روان متن | ✓ | ✓ | ✓ | ✓ |
+| 📖 دیکشنری | تلفظ، نوع کلمه، معانی، مترادف‌ها و مثال | ✓ | — | ✓ | ✓ |
+| 📝 خلاصه | یک جمله اصلی + ۳ تا ۶ نکته کلیدی | ✓ | ✓ | ✓ | ✓ |
+| ✅ اصلاح گرامر | رفع غلط املایی، نگارشی و گرامری در همان زبان | — | — | — | ✓ |
+| 🪄 بازنویسی | روان‌تر کردن متن در همان زبان | — | ✓ | — | — |
+| 💡 توضیح ساده | باز کردن متن تخصصی به زبان ساده | ✓ | — | ✓ | ✓ |
+
+> حالت **بازنویسی** عمداً کش نمی‌شود تا هر بار خروجی تازه‌ای بدهد.
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ⌨️ میانبرها
 
-| Shortcut | Context | Action |
-| --- | --- | --- |
-| `Ctrl + Enter` / `Cmd + Enter` | Popup textarea | Start the translation |
-| `Esc` | Floating widget on a web page | Close the widget and abort the request |
-
----
-
-## 🌍 Supported Languages
-
-| Code | Language | TTS tag |
-| --- | --- | --- |
-| `fa` | Persian — فارسی | `fa-IR` |
-| `en` | English | `en-US` |
-| `ar` | Arabic — العربية | `ar-SA` |
-| `fr` | French — Français | `fr-FR` |
-| `de` | German — Deutsch | `de-DE` |
-| `es` | Spanish — Español | `es-ES` |
-| `it` | Italian — Italiano | `it-IT` |
-| `ru` | Russian — Русский | `ru-RU` |
-| `tr` | Turkish — Türkçe | `tr-TR` |
-| `zh` | Chinese — 中文 | `zh-CN` |
-| `ja` | Japanese — 日本語 | `ja-JP` |
-| `ko` | Korean — 한국어 | `ko-KR` |
-| `hi` | Hindi — हिन्दी | `hi-IN` |
-| `pt` | Portuguese — Português | `pt-BR` |
-
-The source-language selector additionally offers `auto` (automatic detection).
-
----
-
-## 🛠️ Architecture & File Structure
-
-```text
-EX_Translator_Gemini/
-├── manifest.json         # Manifest V3 extension configuration & permissions
-├── shared.js             # 🆕 Shared module: languages, prompts, SSE streaming, history helpers
-├── background.js         # Service Worker handling context menu & storage defaults
-├── content.js            # Injected web content script (floating tooltip, widget, drawer)
-├── content.css           # Glassmorphism UI stylesheet with Vazirmatn Persian typography
-├── popup.html            # Main extension popup interface layout
-├── popup.js              # Popup controller (manual input, history, TTS, language switcher)
-├── popup.css             # Popup window styling & resizable containers
-├── options.html          # Options page (API key, model list, proxy settings, Cloudflare guide)
-├── options.js            # Dynamic API key verification & live model fetch controller
-├── options.css           # Options page Glassmorphism layout
-├── _locales/en/          # Extension localization strings
-├── icon16/48/128.png     # Extension PNG brand assets
-├── CHANGELOG.md          # 🆕 Release history
-├── README.md             # Comprehensive project documentation
-└── .gitignore            # Git version control ignore rules
-```
-
-> ⚠️ **Load order matters.** `shared.js` must always be loaded *before* `popup.js`, `options.js` and `content.js`. This is enforced by the `content_scripts.js` array in `manifest.json`, by the `<script>` order in the HTML pages, and by `CONTENT_SCRIPT_FILES` in `background.js`.
-
----
-
-## 🧩 The Shared Module
-
-`shared.js` exposes a single global namespace, `window.GTShared`, and is safe to inject more than once.
-
-| Export | Purpose |
+| کلید | عملکرد |
 | --- | --- |
-| `LANG_NAMES`, `LANG_LABELS`, `TARGET_LANG_CODES`, `SOURCE_LANG_CODES` | Language metadata for prompts and UI dropdowns |
-| `TTS_LANG_TAGS`, `getTtsLangTag()` | Speech-synthesis language mapping |
-| `TONE_PROMPTS`, `buildSystemPrompt()` | Tone descriptions and full system-prompt construction |
-| `streamTranslation()` | Buffered SSE streaming request against the Gemini API |
-| `getHistory()`, `saveToHistory()`, `deleteHistoryItem()`, `clearHistory()` | History CRUD on a single unified schema |
-| `detectTextDirection()`, `applyTextDirection()` | RTL/LTR detection and application |
-| `sanitizeTranslationText()`, `escapeHtml()`, `truncate()` | Output cleanup and safe rendering |
-| `resolveBaseUrl()` | Normalizes the optional reverse-proxy endpoint |
-| `getSettings()`, `getStorage()`, `setStorage()` | Promise-based `chrome.storage.local` wrappers |
+| `Alt + T` | ترجمه متن انتخاب‌شده در هر صفحه‌ای |
+| `Alt + Shift + T` | باز کردن پنجره افزونه |
+| `Ctrl + Enter` | اجرای درخواست در پنجره افزونه |
+| `Esc` | توقف درخواست یا بستن پنجره |
 
-### History record schema
+برای تغییر میانبرها: `chrome://extensions/shortcuts`
 
-```json
-{
-  "id": 1735138800000,
-  "source": "Hello world",
-  "result": "سلام دنیا",
-  "sourceLang": "auto",
-  "targetLang": "fa",
-  "timestamp": "2026-07-25T09:00:00.000Z"
-}
+---
+
+## 🚀 نصب
+
+1. این مخزن را دانلود یا کلون کنید.
+2. در کروم به `chrome://extensions` بروید.
+3. **Developer mode** را فعال کنید.
+4. **Load unpacked** را بزنید و پوشه ریشه پروژه (همانجا که `manifest.json` است) را انتخاب کنید.
+5. روی آیکون افزونه ⛙ را بزنید، کلید API را وارد کنید و **بررسی کلید** را بزنید.
+
+کلید API را از [Google AI Studio](https://aistudio.google.com/apikey) بسازید.
+
+---
+
+## 📁 ساختار پروژه
+
+```
+EX_Translator_Gemini/
+├── manifest.json              # تعریف افزونه (Manifest V3) — باید در ریشه باشد
+├── icon16.png
+├── icon48.png
+├── icon128.png
+├── _locales/
+│   └── en/messages.json       # پیام‌های محلی‌سازی — باید در ریشه باشد
+│
+├── src/
+│   ├── shared/
+│   │   └── shared.js          # هسته مشترک: پرامپت، API، حافطه، واژه‌نامه، تاریخچه
+│   ├── background/
+│   │   └── service-worker.js  # منوی راست‌کلیک، میانبر سراسری، پیش‌فرض‌ها
+│   ├── content/
+│   │   ├── content.js         # دکمه شناور و پنجره شناور روی صفحات
+│   │   └── content.css
+│   ├── popup/
+│   │   ├── popup.html
+│   │   ├── popup.js
+│   │   └── popup.css
+│   └── options/
+│       ├── options.html
+│       ├── options.js
+│       └── options.css
+│
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
 ```
 
-Legacy records written by older versions (which used `targetL` and `time`) are migrated transparently on read.
+### چرا مانیفست و آیکون‌ها در ریشه مانده‌اند؟
+کروم الزاماً `manifest.json` را در ریشه افزونه می‌خواند و پوشه `_locales/` را هم فقط در ریشه می‌پذیرد. بقیه کد در `src/` مادولار شده است.
+
+### معماری
+- **`src/shared/shared.js` تک منبع حقیقت است**: فهرست زبان‌ها، عملکردها، ساخت پرامپت، استریم SSE، حافطه LRU، واژه‌نامه، تاریخچه و کمک‌ابزارهای متن همه یکجا در این فایل هستند، پس لایه‌های رابط کاربری فقط نمایش می‌دهند.
+- **ترتیب بارگزاری مهم است**: `shared.js` باید قبل از `content.js` / `popup.js` / `options.js` لود شود. در مانیفست اول در لیست `content_scripts.js` قرار دارد و در صفحات HTML اولین تگ `<script>` است.
+- **تزریق در لحطه**: اگر تبی قبل از نصب یا رفرش افزونه باز باشد، سرویس‌ورکر با `chrome.scripting.executeScript` هر دو فایل را به ترتیب تزریق می‌کند.
+- **کلیدهای ذخیره‌سازی**: `apiKey`، `selectedModel`، `defaultMode`، `defaultTargetLang`، `defaultTone`، `autoShowTooltip`، `autoDictionary`، `enableCache`، `customProxyUrl`، `glossary`، `history`، `aiCache`.
 
 ---
 
-## 📥 Installation Guide
+## 📒 واژه‌نامه اختصاصی
 
-1. Clone or download this repository:
-   ```bash
-   git clone https://github.com/AriaRazavi2005/EX_Translator_Gemini.git
-   ```
-2. Open Google Chrome and navigate to:
-   ```text
-   chrome://extensions
-   ```
-3. Enable **Developer mode** using the toggle switch in the top-right corner.
-4. Click **Load unpacked** and select the `EX_Translator_Gemini` folder.
-5. Click the extension icon or open **Options (⚙️ Settings)** to enter your Google Gemini API Key.
+در صفحه تنطیمات می‌توانید جفت‌های «واژه → معادل» ثبت کنید (تا ۳۰۰ مورد). رفتار:
+
+- فقط واژه‌هایی که در متن ورودی حاضرند به پرامپت تزریق می‌شوند (حداکثر ۶۰ مورد)، پس واژه‌نامه بزرگ هم هزینه توکن را بالا نمی‌برد.
+- معادل واژه‌نامه بر قاعده اسم خاص اولویت دارد، پس پرانتز انگلیسی به آن اضافه نمی‌شود.
+- تغییر واژه‌نامه خودبه‌خود کلید حافطه را عوض می‌کند، پس نتیجه قدیمی بازگردانده نمی‌شود.
 
 ---
 
-## 🔑 How to Get a Free Gemini API Key
+## ⚡ حافطه پاسخ‌ها
 
-1. Visit [Google AI Studio](https://aistudio.google.com/).
-2. Sign in with your Google account and click **Get API Key**.
-3. Create a new API key and copy it into the extension **Options** page.
-4. Click **🔄 Test Connection & Fetch Online Models** to verify your key and auto-detect available models.
-
----
-
-## 🛡️ Anti-Sanction & Bypass Proxy Setup (Cloudflare Worker)
-
-If you live in a region where Google AI Studio API is restricted or blocked, you can route requests through a free **Cloudflare Worker** reverse proxy in 1 minute without needing any local VPN:
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) and navigate to **Workers & Pages**.
-2. Click **Create Worker** and paste the following snippet:
-
-```javascript
-export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    url.hostname = 'generativelanguage.googleapis.com';
-    const modifiedRequest = new Request(url.toString(), {
-      method: request.method,
-      headers: request.headers,
-      body: request.body
-    });
-    return fetch(modifiedRequest);
-  }
-};
-```
-
-3. Deploy the worker and copy your new Worker URL (e.g. `https://my-gemini-proxy.subdomain.workers.dev`).
-4. Paste this URL into the **Reverse Proxy Endpoint** field in the extension **Options** page!
+- تا ۲۰۰ پاسخ با سیاست LRU روی دستگاه شما نگه داشته می‌شود.
+- کلید حافطه از ترکیب عملکرد، زبان مقصد، زبان مبدأ، لحن، مدل، امضای واژه‌نامه و متن ساخته می‌شود.
+- پاسخ از حافطه با نشان «⚡ از حافطه» مشخص می‌شود.
+- دکمه ↻ در پنجره شناور عمداً حافطه را دور می‌زند و پاسخ تازه می‌گیرد.
+- از صفحه تنطیمات می‌توانید حافطه را غیرفعال یا کامل پاک کنید.
 
 ---
 
-## 🇮🇷 راهنمای فارسی (Persian Summary)
+## 🛠 فناوری
 
-اکستنشن کروم **Gemini AI Translator** یک ابزار حرفه‌ای و مدرن برای ترجمه فوری متون با مدل‌های هوش مصنوعی گوگل Gemini است.
-
-### امکانات برجسته:
-- **پاپ‌آپ شناور شیشه‌ای روی صفحات وب (Glassmorphic Tooltip)**
-- **استریم زنده پاسخ (Server-Sent Events)**
-- **میانبر کیبورد `Ctrl + Enter` برای شروع سریع ترجمه**
-- **پشتیبانی از ۱۴ زبان مقصد**
-- **حفظ نام‌های خاص و برندها در پرانتز انگلیسی (مانند: گوگل (Google))**
-- **باکس‌های قابل تغییر اندازه در هر دو حالت پاپ‌آپ و درون صفحه**
-- **کشوی تاریخچه ترجمه‌ها به همراه امکان حذف تک‌تک موارد**
-- **پشتیبانی از ریورس پرکسی و Cloudflare Worker برای دور زدن تحریم‌ها بدون نیاز به فیلترشکن**
+- **Manifest V3** با سرویس‌ورکر
+- **JavaScript خالص** بدون فریم‌ورک و بدون مرحله بیلد
+- **Gemini API** با `streamGenerateContent` و SSE
+- **Web Speech API** برای خوانش صوتی
+- **طراحی Glassmorphism** با فونت Vazirmatn
 
 ---
 
-## 📜 License
+## 📝 مجوز
 
-This project is licensed under the [MIT License](LICENSE) - feel free to use, modify, and distribute as desired.
+[MIT](LICENSE)
