@@ -182,6 +182,21 @@
   const GLOSSARY_PROMPT_LIMIT = 60;
   const SINGLE_WORD_MAX_LENGTH = 40;
 
+  // Generation defaults, overridable from settings.
+  const DEFAULT_MAX_OUTPUT_TOKENS = 3072;
+  const DEFAULT_TEMPERATURE = 0.2;
+
+  // Transient-failure retry policy for the Gemini request.
+  const MAX_RETRIES = 2;
+  const RETRY_BASE_DELAY = 400;
+
+  // Only rewrite a cache entry's recency stamp when it is older than this,
+  // so a burst of cache hits does not repeatedly rewrite the whole cache.
+  const CACHE_TOUCH_INTERVAL = 60000;
+
+  // "auto" resolves to the OS preference, otherwise "dark" / "light".
+  const THEME_STORAGE_KEY = "theme";
+
   const RTL_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u0590-\u05FF]/;
 
   // --------------------------------------------------------------------------
@@ -304,6 +319,100 @@
   }
 
   // --------------------------------------------------------------------------
+  // Theme
+  // --------------------------------------------------------------------------
+
+  /** Resolves a stored preference ("auto"|"dark"|"light") to "dark"|"light". */
+  function resolveTheme(theme) {
+    if (theme === "light" || theme === "dark") return theme;
+    try {
+      if (typeof matchMedia === "function" &&
+          matchMedia("(prefers-color-scheme: light)").matches) {
+        return "light";
+      }
+    } catch (e) { /* matchMedia unavailable (e.g. service worker) */ }
+    return "dark";
+  }
+
+  /** Writes the resolved theme onto an element as data-gt-theme. */
+  function applyTheme(root, theme) {
+    const resolved = resolveTheme(theme);
+    if (root && root.setAttribute) root.setAttribute("data-gt-theme", resolved);
+    return resolved;
+  }
+
+  // --------------------------------------------------------------------------
+  // Rich text rendering (safe markdown-lite -> HTML)
+  //
+  // The model returns plain text with light structure (bullets, numbered
+  // lists, **bold**, `code`). We escape first, then re-introduce only our own
+  // tags, so the output can never inject host markup.
+  // --------------------------------------------------------------------------
+
+  /** Applies inline **bold**, *italic*, `code`, and safe http(s) links. */
+  function renderInline(escaped) {
+    return escaped
+      .replace(/`([^`]+)`/g, '<code class="gt-rt-code">$1</code>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a class="gt-rt-link" href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
+      .replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>");
+  }
+
+  /** Renders a single block <div> carrying its own bidi direction. */
+  function renderBlock(rawLine, inner) {
+    const dir = detectTextDirection(rawLine);
+    return '<div class="gt-rt-line" dir="' + dir + '">' + inner + "</div>";
+  }
+
+  /**
+   * Turns model output into structured, bidi-aware HTML. Falls back to a plain
+   * escaped block when the text has no recognisable structure.
+   */
+  function renderRichText(text) {
+    const value = String(text == null ? "" : text);
+    if (!value.trim()) return "";
+
+    const lines = value.replace(/\r\n/g, "\n").split("\n");
+    const html = [];
+    let listType = null; // "ul" | "ol" | null
+
+    function closeList() {
+      if (listType) { html.push("</" + listType + ">"); listType = null; }
+    }
+
+    lines.forEach(function (line) {
+      const raw = line.replace(/\s+$/, "");
+      if (!raw.trim()) { closeList(); return; }
+
+      const escaped = escapeHtml(raw.trim());
+      const bullet = /^[-•*]\s+(.*)$/.exec(raw.trim());
+      const numbered = /^(\d+)[.)]\s+(.*)$/.exec(raw.trim());
+      const indented = /^\s{2,}\S/.test(line);
+
+      if (bullet) {
+        if (listType !== "ul") { closeList(); html.push('<ul class="gt-rt-ul">'); listType = "ul"; }
+        html.push('<li dir="' + detectTextDirection(bullet[1]) + '">' +
+          renderInline(escapeHtml(bullet[1])) + "</li>");
+      } else if (numbered) {
+        if (listType !== "ol") { closeList(); html.push('<ol class="gt-rt-ol">'); listType = "ol"; }
+        html.push('<li dir="' + detectTextDirection(numbered[2]) + '">' +
+          renderInline(escapeHtml(numbered[2])) + "</li>");
+      } else {
+        closeList();
+        const inner = renderInline(escaped);
+        html.push(indented
+          ? '<div class="gt-rt-sub" dir="' + detectTextDirection(raw) + '">' + inner + "</div>"
+          : renderBlock(raw.trim(), inner));
+      }
+    });
+
+    closeList();
+    return html.join("");
+  }
+
+  // --------------------------------------------------------------------------
   // Storage helpers (promise based)
   // --------------------------------------------------------------------------
 
@@ -326,6 +435,12 @@
   /** Loads all extension settings at once. */
   function getSettings() {
     return getStorage(null);
+  }
+
+  /** Reads the stored theme preference ("auto" by default). */
+  async function getStoredTheme() {
+    const data = await getStorage([THEME_STORAGE_KEY]);
+    return data[THEME_STORAGE_KEY] || "auto";
   }
 
   // --------------------------------------------------------------------------
@@ -609,9 +724,14 @@
     const hit = cache[key];
     if (!hit || !hit.result) return null;
 
-    hit.at = Date.now();
-    cache[key] = hit;
-    writeCache(cache); // Recency touch, intentionally not awaited.
+    // Throttle the recency touch: rewriting the whole cache on every hit is
+    // expensive, and second-level precision is enough for LRU eviction.
+    const now = Date.now();
+    if (now - (hit.at || 0) > CACHE_TOUCH_INTERVAL) {
+      hit.at = now;
+      cache[key] = hit;
+      writeCache(cache); // Intentionally not awaited.
+    }
 
     return hit.result;
   }
@@ -759,6 +879,54 @@
   }
 
   // --------------------------------------------------------------------------
+  // Backup: export / import glossary and history
+  // --------------------------------------------------------------------------
+
+  /** Collects the user's portable data into a single JSON-serialisable object. */
+  async function exportAllData() {
+    const results = await Promise.all([getGlossary(), getHistory()]);
+    return {
+      app: "gemini-ai-translator",
+      schema: 1,
+      exportedAt: new Date().toISOString(),
+      glossary: results[0],
+      history: results[1]
+    };
+  }
+
+  /**
+   * Imports glossary rows. With replace=false (default) they are merged ahead
+   * of the existing rows; saveGlossary de-duplicates on the source term.
+   */
+  async function importGlossary(entries, replace) {
+    const incoming = Array.isArray(entries) ? entries : [];
+    const base = replace ? [] : await getGlossary();
+    return saveGlossary(incoming.concat(base));
+  }
+
+  /** Imports history records, normalising them through saveToHistory's schema. */
+  async function importHistory(items, replace) {
+    const incoming = (Array.isArray(items) ? items : [])
+      .filter(function (it) { return it && it.source && it.result; })
+      .map(function (it, index) {
+        return {
+          id: it.id != null ? it.id : Date.now() + index,
+          source: String(it.source),
+          result: String(it.result),
+          sourceLang: it.sourceLang || "auto",
+          targetLang: it.targetLang || it.targetL || "fa",
+          mode: MODES[it.mode] ? it.mode : "translate",
+          timestamp: it.timestamp || new Date().toISOString()
+        };
+      });
+
+    const base = replace ? [] : await getHistory();
+    const merged = incoming.concat(base).slice(0, HISTORY_LIMIT);
+    await setStorage({ history: merged });
+    return merged;
+  }
+
+  // --------------------------------------------------------------------------
   // Gemini streaming request
   // --------------------------------------------------------------------------
 
@@ -768,6 +936,42 @@
     );
     err.code = "MISSING_API_KEY";
     return err;
+  }
+
+  function sleep(ms, signal) {
+    return new Promise(function (resolve, reject) {
+      const timer = setTimeout(resolve, ms);
+      if (signal) {
+        signal.addEventListener("abort", function () {
+          clearTimeout(timer);
+          const err = new Error("aborted");
+          err.name = "AbortError";
+          reject(err);
+        }, { once: true });
+      }
+    });
+  }
+
+  /** Transient statuses worth a retry (rate limit + server-side errors). */
+  function isRetriableStatus(status) {
+    return status === 429 || (status >= 500 && status <= 599);
+  }
+
+  /** Reads a Gemini error response and maps it to a localized Error. */
+  async function toApiError(response) {
+    const errJson = await response.json().catch(function () { return {}; });
+    const errMsg =
+      (errJson && errJson.error && errJson.error.message) || response.statusText;
+
+    if (response.status === 400 || response.status === 403) {
+      const authErr = new Error("کلید API نامعتبر یا فاقد دسترسی است (" + response.status + "): " + errMsg);
+      authErr.code = "AUTH";
+      return authErr;
+    }
+    if (response.status === 429) {
+      return new Error("محدودیت تعداد درخواست‌ها. کمی صبر کنید و دوباره تلاش کنید.");
+    }
+    return new Error("خطای API (" + response.status + "): " + errMsg);
   }
 
   /**
@@ -847,48 +1051,56 @@
       text: text
     });
 
-    let response;
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: systemPrompt + "\n\n" + mode.inputLabel + ":\n" + text }
-              ]
-            }
-          ],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 3072 }
-        }),
-        signal: opts.signal
-      });
-    } catch (networkError) {
-      if (networkError && networkError.name === "AbortError") throw networkError;
-      throw new Error(
-        "اتصال به سرور برقرار نشد. اینترنت، فیلترشکن یا آدرس پرکسی خود را بررسی کنید."
-      );
+    const maxOutputTokens = Number(settings.maxOutputTokens) > 0
+      ? Number(settings.maxOutputTokens)
+      : DEFAULT_MAX_OUTPUT_TOKENS;
+    const temperature = settings.temperature != null && settings.temperature !== ""
+      ? Number(settings.temperature)
+      : DEFAULT_TEMPERATURE;
+
+    const requestBody = JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: systemPrompt + "\n\n" + mode.inputLabel + ":\n" + text }
+          ]
+        }
+      ],
+      generationConfig: { temperature: temperature, maxOutputTokens: maxOutputTokens }
+    });
+
+    // Retry transient failures (network hiccups, 429, 5xx) with backoff.
+    let response = null;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: requestBody,
+          signal: opts.signal
+        });
+      } catch (networkError) {
+        if (networkError && networkError.name === "AbortError") throw networkError;
+        if (attempt < MAX_RETRIES) {
+          await sleep(RETRY_BASE_DELAY * Math.pow(2, attempt), opts.signal);
+          continue;
+        }
+        throw new Error(
+          "اتصال به سرور برقرار نشد. اینترنت، فیلترشکن یا آدرس پرکسی خود را بررسی کنید."
+        );
+      }
+
+      if (response.ok) break;
+
+      if (isRetriableStatus(response.status) && attempt < MAX_RETRIES) {
+        await sleep(RETRY_BASE_DELAY * Math.pow(2, attempt), opts.signal);
+        continue;
+      }
+      throw await toApiError(response);
     }
 
-    if (!response.ok) {
-      const errJson = await response.json().catch(function () {
-        return {};
-      });
-      const errMsg =
-        (errJson && errJson.error && errJson.error.message) || response.statusText;
-
-      if (response.status === 400 || response.status === 403) {
-        throw new Error("کلید API نامعتبر یا فاقد دسترسی است (" + response.status + "): " + errMsg);
-      }
-      if (response.status === 429) {
-        throw new Error("محدودیت تعداد درخواست‌ها. کمی صبر کنید و دوباره تلاش کنید.");
-      }
-      throw new Error("خطای API (" + response.status + "): " + errMsg);
-    }
-
-    if (!response.body) throw new Error("پاسخ استریم از سرور دریافت نشد.");
+    if (!response || !response.body) throw new Error("پاسخ استریم از سرور دریافت نشد.");
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
@@ -955,6 +1167,168 @@
   }
 
   // --------------------------------------------------------------------------
+  // Non-streaming single call (used by batch page translation)
+  // --------------------------------------------------------------------------
+
+  async function generateOnce(config) {
+    const cfg = config || {};
+    const settings = cfg.settings || (await getSettings());
+    const apiKey = settings.apiKey && String(settings.apiKey).trim();
+    if (!apiKey) throw missingApiKeyError();
+
+    const model = settings.selectedModel || DEFAULT_MODEL;
+    const baseUrl = resolveBaseUrl(settings.customProxyUrl);
+    const url = baseUrl + "/v1beta/models/" + encodeURIComponent(model) +
+      ":generateContent?key=" + encodeURIComponent(apiKey);
+
+    const maxOutputTokens = Number(settings.maxOutputTokens) > 0
+      ? Number(settings.maxOutputTokens) : DEFAULT_MAX_OUTPUT_TOKENS;
+    const temperature = cfg.temperature != null ? cfg.temperature
+      : (settings.temperature != null && settings.temperature !== ""
+        ? Number(settings.temperature) : DEFAULT_TEMPERATURE);
+
+    const body = JSON.stringify({
+      contents: [{
+        role: "user",
+        parts: [{ text: (cfg.systemPrompt ? cfg.systemPrompt + "\n\n" : "") + (cfg.userText || "") }]
+      }],
+      generationConfig: { temperature: temperature, maxOutputTokens: maxOutputTokens }
+    });
+
+    let response = null;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body,
+          signal: cfg.signal
+        });
+      } catch (networkError) {
+        if (networkError && networkError.name === "AbortError") throw networkError;
+        if (attempt < MAX_RETRIES) { await sleep(RETRY_BASE_DELAY * Math.pow(2, attempt), cfg.signal); continue; }
+        throw new Error("اتصال به سرور برقرار نشد. اینترنت، فیلترشکن یا آدرس پرکسی خود را بررسی کنید.");
+      }
+      if (response.ok) break;
+      if (isRetriableStatus(response.status) && attempt < MAX_RETRIES) {
+        await sleep(RETRY_BASE_DELAY * Math.pow(2, attempt), cfg.signal); continue;
+      }
+      throw await toApiError(response);
+    }
+
+    const data = await response.json().catch(function () { return {}; });
+    const candidate = data && data.candidates && data.candidates[0];
+    const parts = candidate && candidate.content && candidate.content.parts;
+    return (parts || []).map(function (p) { return (p && p.text) || ""; }).join("");
+  }
+
+  // --------------------------------------------------------------------------
+  // Batch page translation
+  //
+  // Segments are sent in numbered batches; the model echoes @@N@@ markers so
+  // each translation can be aligned back to its source node. A batch that
+  // fails or comes back malformed leaves its originals untouched.
+  // --------------------------------------------------------------------------
+
+  const PAGE_BATCH_MAX_SEGMENTS = 40;
+  const PAGE_BATCH_MAX_CHARS = 2400;
+
+  function chunkSegments(segments) {
+    const chunks = [];
+    let current = [];
+    let chars = 0;
+
+    (segments || []).forEach(function (seg, i) {
+      const len = String(seg == null ? "" : seg).length;
+      if (current.length &&
+          (current.length >= PAGE_BATCH_MAX_SEGMENTS || chars + len > PAGE_BATCH_MAX_CHARS)) {
+        chunks.push(current);
+        current = [];
+        chars = 0;
+      }
+      current.push({ index: i, text: seg });
+      chars += len;
+    });
+
+    if (current.length) chunks.push(current);
+    return chunks;
+  }
+
+  function parseMarkedOutput(output) {
+    const map = {};
+    const parts = String(output || "").split(/@@(\d+)@@/);
+    for (let i = 1; i < parts.length; i += 2) {
+      const idx = parseInt(parts[i], 10);
+      const val = String(parts[i + 1] || "").replace(/^\r?\n/, "").trim();
+      if (!isNaN(idx)) map[idx] = val;
+    }
+    return map;
+  }
+
+  /**
+   * Translates an array of text segments in numbered batches.
+   *
+   * @param {string[]} segments
+   * @param {Object}   opts  { targetLang, settings, glossary, signal, onProgress }
+   * @returns {Promise<string[]>} translations aligned to `segments`; a failed
+   *          batch yields the original text for its segments.
+   */
+  async function translatePageSegments(segments, opts) {
+    const o = opts || {};
+    const list = Array.isArray(segments) ? segments : [];
+    const settings = o.settings || (await getSettings());
+    const targetLangName = LANG_NAMES[o.targetLang] || o.targetLang || "Persian";
+    const glossary = o.glossary || (await getGlossary());
+
+    const results = list.slice(); // Untranslated fallback per segment.
+    const chunks = chunkSegments(list);
+    let done = 0;
+
+    for (let c = 0; c < chunks.length; c += 1) {
+      if (o.signal && o.signal.aborted) break;
+      const chunk = chunks[c];
+
+      const glossaryClause = buildGlossaryClause(
+        glossary, chunk.map(function (s) { return s.text; }).join("\n")
+      );
+
+      const sys = [
+        "You are a precise translator. Translate each numbered segment into " + targetLangName + ".",
+        "Each segment starts with a marker line of the exact form @@N@@ where N is a number.",
+        "Return EVERY marker in the SAME order, each on its own line, immediately followed by ONLY that segment's translation.",
+        "Never merge, reorder, drop or renumber segments. Never add commentary, extra markers or code fences.",
+        "Preserve inline punctuation. For brand/proper names, keep them readable and add the original in parentheses on first use.",
+        glossaryClause
+      ].filter(Boolean).join("\n");
+
+      const userText = chunk.map(function (s) {
+        return "@@" + s.index + "@@\n" + String(s.text == null ? "" : s.text);
+      }).join("\n");
+
+      try {
+        const raw = await generateOnce({ settings: settings, systemPrompt: sys, userText: userText, signal: o.signal });
+        const map = parseMarkedOutput(raw);
+        chunk.forEach(function (s) {
+          if (map[s.index] != null && map[s.index] !== "") results[s.index] = map[s.index];
+        });
+      } catch (err) {
+        // Auth/config failures are not transient: stop and surface them.
+        if (err && (err.name === "AbortError" || err.code === "MISSING_API_KEY" || err.code === "AUTH")) {
+          throw err;
+        }
+        // Transient/parse failure: keep this chunk's originals and continue.
+      }
+
+      done += chunk.length;
+      if (typeof o.onProgress === "function") {
+        o.onProgress(Math.min(done, list.length), list.length);
+      }
+    }
+
+    return results;
+  }
+
+  // --------------------------------------------------------------------------
   // Public surface
   // --------------------------------------------------------------------------
 
@@ -973,6 +1347,8 @@
     HISTORY_LIMIT: HISTORY_LIMIT,
     CACHE_LIMIT: CACHE_LIMIT,
     GLOSSARY_LIMIT: GLOSSARY_LIMIT,
+    DEFAULT_MAX_OUTPUT_TOKENS: DEFAULT_MAX_OUTPUT_TOKENS,
+    DEFAULT_TEMPERATURE: DEFAULT_TEMPERATURE,
 
     // Text helpers
     detectTextDirection: detectTextDirection,
@@ -980,6 +1356,7 @@
     sanitizeTranslationText: sanitizeTranslationText,
     sanitizeModelOutput: sanitizeModelOutput,
     escapeHtml: escapeHtml,
+    renderRichText: renderRichText,
     truncate: truncate,
     isSingleWord: isSingleWord,
     getTtsLangTag: getTtsLangTag,
@@ -988,6 +1365,11 @@
     buildModeOptions: buildModeOptions,
     getMode: getMode,
     buildSystemPrompt: buildSystemPrompt,
+
+    // Theme
+    resolveTheme: resolveTheme,
+    applyTheme: applyTheme,
+    getStoredTheme: getStoredTheme,
 
     // Storage
     getStorage: getStorage,
@@ -1013,8 +1395,15 @@
     searchHistory: searchHistory,
     formatHistoryTime: formatHistoryTime,
 
+    // Backup
+    exportAllData: exportAllData,
+    importGlossary: importGlossary,
+    importHistory: importHistory,
+
     // API
     runAction: runAction,
-    streamTranslation: streamTranslation
+    streamTranslation: streamTranslation,
+    generateOnce: generateOnce,
+    translatePageSegments: translatePageSegments
   };
 })(typeof self !== "undefined" ? self : window);

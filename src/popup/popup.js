@@ -39,6 +39,34 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Theme
+  // ---------------------------------------------------------------------------
+
+  const THEME_ICONS = { auto: "🌓", light: "☀️", dark: "🌙" };
+  const THEME_TITLES = {
+    auto: "تم: خودکار (سیستم)",
+    light: "تم: روشن",
+    dark: "تم: تیره"
+  };
+
+  function applyThemeUi(theme) {
+    S.applyTheme(document.documentElement, theme);
+    if (dom.themeToggleBtn) {
+      dom.themeToggleBtn.innerText = THEME_ICONS[theme] || THEME_ICONS.auto;
+      dom.themeToggleBtn.title = THEME_TITLES[theme] || THEME_TITLES.auto;
+    }
+  }
+
+  async function cycleTheme() {
+    const order = ["auto", "light", "dark"];
+    const next = order[(order.indexOf(settings.theme || "auto") + 1) % order.length];
+    settings.theme = next;
+    applyThemeUi(next);
+    await S.setStorage({ theme: next });
+    setStatus(THEME_TITLES[next]);
+  }
+
+  // ---------------------------------------------------------------------------
   // Initialization
   // ---------------------------------------------------------------------------
 
@@ -49,8 +77,9 @@
       "clear-text-btn", "copy-result-btn", "tts-result-btn", "stop-btn",
       "cache-badge", "char-count", "active-model-badge", "status-msg",
       "output-title", "tab-translate-btn", "tab-history-btn", "open-options-btn",
-      "translate-view", "history-view", "history-list", "clear-history-btn",
-      "history-search", "history-mode-filter", "history-count"
+      "theme-toggle-btn", "translate-page-btn", "translate-view", "history-view",
+      "history-list", "clear-history-btn", "history-search", "history-mode-filter",
+      "history-count"
     ].forEach((id) => {
       const key = id.replace(/-([a-z])/g, (m, c) => c.toUpperCase());
       dom[key] = el(id);
@@ -61,6 +90,13 @@
     cacheDom();
 
     settings = await S.getSettings();
+
+    applyThemeUi(settings.theme || "auto");
+    try {
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if ((settings.theme || "auto") === "auto") applyThemeUi("auto");
+      });
+    } catch (e) { /* matchMedia change events unsupported */ }
 
     // Language and mode selects are generated from the shared metadata.
     dom.sourceLang.innerHTML = S.buildLangOptions(
@@ -170,6 +206,7 @@
 
     dom.clearTextBtn.addEventListener("click", () => {
       dom.sourceText.value = "";
+      dom.outputText.classList.remove("is-rich");
       dom.outputText.innerText = "نتیجه زنده اینجا استریم می‌شود...";
       dom.outputText.classList.add("placeholder-text");
       setCacheBadge(false);
@@ -193,6 +230,11 @@
     dom.stopBtn.addEventListener("click", stopStreaming);
 
     dom.openOptionsBtn.addEventListener("click", () => chrome.runtime.openOptionsPage());
+    dom.themeToggleBtn.addEventListener("click", cycleTheme);
+    dom.translatePageBtn.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ action: "TRANSLATE_ACTIVE_PAGE" });
+      window.close();
+    });
 
     dom.tabTranslateBtn.addEventListener("click", () => switchView("translate"));
     dom.tabHistoryBtn.addEventListener("click", () => switchView("history"));
@@ -285,9 +327,7 @@
       // Clicking a row reloads it into the editor.
       row.addEventListener("click", () => {
         dom.sourceText.value = item.source;
-        dom.outputText.innerText = item.result;
-        dom.outputText.classList.remove("placeholder-text");
-        S.applyTextDirection(dom.outputText, item.result);
+        renderOutput(item.result);
 
         dom.modeSelect.value = item.mode || "translate";
         if (item.targetLang) dom.targetLang.value = item.targetLang;
@@ -305,6 +345,13 @@
   // ---------------------------------------------------------------------------
   // Output actions
   // ---------------------------------------------------------------------------
+
+  /** Renders a completed result as structured, bidi-aware rich text. */
+  function renderOutput(text) {
+    dom.outputText.classList.remove("placeholder-text");
+    dom.outputText.classList.add("is-rich");
+    dom.outputText.innerHTML = S.renderRichText(text);
+  }
 
   function copyResult() {
     const text = dom.outputText.innerText;
@@ -392,6 +439,7 @@
         onCacheHit: () => setCacheBadge(true),
         onChunk: (partial) => {
           if (controller.signal.aborted) return;
+          dom.outputText.classList.remove("is-rich");
           dom.outputText.innerText = partial;
           S.applyTextDirection(dom.outputText, partial);
         }
@@ -405,8 +453,7 @@
         return;
       }
 
-      dom.outputText.innerText = result;
-      S.applyTextDirection(dom.outputText, result);
+      renderOutput(result);
 
       await S.saveToHistory({
         source: text,
@@ -423,7 +470,7 @@
         '<span class="error-text">' + S.escapeHtml(err.message) + "</span>";
 
       if (err && err.code === "MISSING_API_KEY") {
-        setStatus("کلید API تنطیم نشده است.", true);
+        setStatus("کلید API تنظیم نشده است.", true);
       }
     } finally {
       if (activeAbortController === controller) activeAbortController = null;

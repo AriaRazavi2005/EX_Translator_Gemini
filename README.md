@@ -7,7 +7,7 @@
   [![Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white)](manifest.json)
   [![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=111)](src/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
-  [![Version](https://img.shields.io/badge/version-1.2.1-8B5CF6)](docs/CHANGELOG.md)
+  [![Version](https://img.shields.io/badge/version-1.3.0-8B5CF6)](docs/CHANGELOG.md)
 
   **[🇬🇧 English](#-english) · [🇮🇷 فارسی](#-فارسی)**
 </div>
@@ -25,6 +25,9 @@ The extension is built with plain JavaScript and has no build step or runtime de
 ## ✨ Features
 
 - ⚡ Live streamed Gemini responses
+- 🌐 One-click full-page translation, in place, with restore
+- 🎨 Light, dark, and automatic (system) themes
+- 📑 Structured rich output — bullet lists, numbered lists, bold, and inline code
 - 🪟 Draggable floating assistant for selected text
 - 🧠 Six AI modes in one extension
 - 📖 Automatic dictionary mode for a single word
@@ -32,7 +35,9 @@ The extension is built with plain JavaScript and has no build step or runtime de
 - 🎭 General, formal, informal, and technical tones
 - 📒 Custom glossary with preferred exact translations
 - 🚄 Local LRU response cache with a cache-hit badge
+- 🔁 Automatic retry with backoff on rate limits and network errors
 - 🔎 Searchable history with mode filters and per-item deletion
+- 💾 Glossary and history backup (JSON export / import)
 - ⏹️ Stream cancellation while preserving partial output
 - 🔊 Text-to-speech and one-click copy
 - 🖱️ Context-menu action and global shortcuts
@@ -76,6 +81,7 @@ The extension is built with plain JavaScript and has no build step or runtime de
 | Shortcut | Action |
 | --- | --- |
 | `Alt + T` | Process the current page selection |
+| `Alt + Shift + P` | Translate the whole page (toggle to restore) |
 | `Alt + Shift + T` | Open the extension popup |
 | `Ctrl/Cmd + Enter` | Run the selected popup action |
 | `Esc` | Stop the active request or close the interface |
@@ -105,6 +111,7 @@ Never commit an API key, token, or private proxy address. See [Security Policy](
 │   ├── options/               # Settings and glossary UI
 │   ├── popup/                 # Extension popup
 │   └── shared/                # API, prompts, cache, history, languages
+├── test/                      # Dependency-free unit tests (node test/run-tests.mjs)
 ├── icon16.png                 # Chrome extension icons
 ├── icon48.png
 ├── icon128.png
@@ -123,6 +130,7 @@ No package manager or build command is required:
 2. Reload the unpacked extension.
 3. Refresh the test page.
 4. Test Persian, English, and mixed-direction dictionary output.
+5. Run the shared-core unit tests with `node test/run-tests.mjs`.
 
 Please read the [contribution guide](.github/CONTRIBUTING.md) before opening a pull request.
 
@@ -139,6 +147,9 @@ Please read the [contribution guide](.github/CONTRIBUTING.md) before opening a p
 ## ✨ امکانات
 
 - ⚡ نمایش زنده پاسخ Gemini
+- 🌐 ترجمه کل صفحه با یک کلیک و امکان بازگردانی متن اصلی
+- 🎨 تم روشن، تیره و خودکار (مطابق سیستم)
+- 📑 نمایش ساختارمند خروجی: فهرست‌ها، متن پررنگ و کد
 - 🪟 پنجره شناور و قابل جابه‌جایی برای متن انتخاب‌شده
 - 🧠 شش عملکرد هوش مصنوعی در یک افزونه
 - 📖 فعال شدن خودکار دیکشنری برای تک‌کلمه
@@ -146,7 +157,9 @@ Please read the [contribution guide](.github/CONTRIBUTING.md) before opening a p
 - 🎭 لحن عمومی، رسمی، صمیمانه و تخصصی
 - 📒 واژه‌نامه اختصاصی برای تعیین معادل‌های دقیق
 - 🚄 حافظه محلی LRU با نشان پاسخ ذخیره‌شده
+- 🔁 تلاش مجدد خودکار هنگام محدودیت درخواست یا قطع اتصال
 - 🔎 تاریخچه قابل جست‌وجو با فیلتر عملکرد و حذف تک‌موردی
+- 💾 پشتیبان‌گیری از واژه‌نامه و تاریخچه (برون‌بری و درون‌ریزی JSON)
 - ⏹️ توقف پاسخ بدون حذف متن تولیدشده
 - 🔊 خوانش صوتی و کپی سریع
 - 🖱️ منوی راست‌کلیک و میانبرهای صفحه‌کلید
@@ -190,6 +203,7 @@ Please read the [contribution guide](.github/CONTRIBUTING.md) before opening a p
 | میانبر | عملکرد |
 | --- | --- |
 | `Alt + T` | پردازش متن انتخاب‌شده در صفحه |
+| `Alt + Shift + P` | ترجمه کل صفحه (برای بازگردانی دوباره بزنید) |
 | `Alt + Shift + T` | باز کردن پاپ‌آپ افزونه |
 | `Ctrl/Cmd + Enter` | اجرای درخواست انتخاب‌شده |
 | `Esc` | توقف درخواست فعال یا بستن رابط |
