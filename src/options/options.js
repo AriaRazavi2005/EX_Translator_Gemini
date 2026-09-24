@@ -17,7 +17,8 @@
       "default-tone", "auto-tooltip-checkbox", "auto-dictionary-checkbox",
       "enable-cache-checkbox", "clear-cache-btn", "cache-stats", "glossary-source",
       "glossary-target", "glossary-add-btn", "glossary-list", "glossary-count",
-      "save-settings-btn", "save-msg"].forEach((id) => {
+      "theme-select", "max-tokens-input", "export-data-btn", "import-data-btn",
+      "import-file-input", "backup-msg", "save-settings-btn", "save-msg"].forEach((id) => {
       dom[id.replace(/-([a-z])/g, (match, char) => char.toUpperCase())] = el(id);
     });
   }
@@ -41,9 +42,19 @@
     dom.autoTooltipCheckbox.checked = settings.autoShowTooltip !== false;
     dom.autoDictionaryCheckbox.checked = settings.autoDictionary !== false;
     dom.enableCacheCheckbox.checked = settings.enableCache !== false;
+    dom.themeSelect.value = settings.theme || "auto";
+    dom.maxTokensInput.value = settings.maxOutputTokens || S.DEFAULT_MAX_OUTPUT_TOKENS;
+    applyThemeUi(settings.theme || "auto");
+    try {
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if (dom.themeSelect.value === "auto") applyThemeUi("auto");
+      });
+    } catch (e) { /* matchMedia change events unsupported */ }
 
     const storedModel = settings.selectedModel || S.DEFAULT_MODEL;
-    if (!Array.from(dom.modelSelect.options).some((option) => option.value === storedModel)) {
+    if (Array.isArray(settings.modelList) && settings.modelList.length) {
+      populateModels(settings.modelList, storedModel);
+    } else if (!Array.from(dom.modelSelect.options).some((option) => option.value === storedModel)) {
       const option = document.createElement("option");
       option.value = storedModel;
       option.textContent = storedModel;
@@ -56,6 +67,25 @@
     refreshCacheStats();
     bindEvents();
     if (settings.apiKey) fetchModels(settings.apiKey, storedModel);
+  }
+
+  const THEME_TITLES = { auto: "خودکار (سیستم)", light: "روشن", dark: "تیره" };
+
+  function applyThemeUi(theme) {
+    S.applyTheme(document.documentElement, theme);
+  }
+
+  /** Fills the model <select> from a list of model names. */
+  function populateModels(models, preferred) {
+    dom.modelSelect.replaceChildren(...models.map((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      return option;
+    }));
+    dom.modelSelect.value = models.includes(preferred)
+      ? preferred
+      : (models.includes(S.DEFAULT_MODEL) ? S.DEFAULT_MODEL : models[0]);
   }
 
   function bindEvents() {
@@ -76,6 +106,16 @@
       await refreshCacheStats();
       showSaveMessage("حافظه پاک شد.");
     });
+
+    dom.themeSelect.addEventListener("change", async () => {
+      applyThemeUi(dom.themeSelect.value);
+      await S.setStorage({ theme: dom.themeSelect.value });
+      showSaveMessage("تم روی «" + (THEME_TITLES[dom.themeSelect.value] || dom.themeSelect.value) + "» تنظیم شد.");
+    });
+
+    dom.exportDataBtn.addEventListener("click", exportData);
+    dom.importDataBtn.addEventListener("click", () => dom.importFileInput.click());
+    dom.importFileInput.addEventListener("change", importData);
   }
 
   function renderGlossary() {
@@ -149,6 +189,49 @@
     dom.cacheStats.textContent = `${stats.count} پاسخ از سقف ${stats.limit} در حافظه است.`;
   }
 
+  function setBackupMsg(message, isError) {
+    dom.backupMsg.textContent = message || "";
+    dom.backupMsg.style.color = isError ? "var(--danger)" : "";
+  }
+
+  async function exportData() {
+    const data = await S.exportAllData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "gemini-translator-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setBackupMsg(`ذخیره شد: ${data.glossary.length} واژه و ${data.history.length} تاریخچه.`);
+  }
+
+  async function importData(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = ""; // Allow re-selecting the same file later.
+    if (!file) return;
+
+    try {
+      const data = JSON.parse(await file.text());
+      let g = 0;
+      let h = 0;
+      if (Array.isArray(data.glossary)) {
+        glossaryEntries = await S.importGlossary(data.glossary, false);
+        g = data.glossary.length;
+        renderGlossary();
+      }
+      if (Array.isArray(data.history)) {
+        await S.importHistory(data.history, false);
+        h = data.history.length;
+      }
+      setBackupMsg(`ادغام شد: ${g} واژه و ${h} تاریخچه.`);
+    } catch (err) {
+      setBackupMsg("فایل نامعتبر است: " + ((err && err.message) || ""), true);
+    }
+  }
+
   async function verifyKey() {
     const apiKey = dom.apiKeyInput.value.trim();
     if (!apiKey) return setStatusBox("ابتدا کلید API را وارد کنید.", "error");
@@ -180,15 +263,8 @@
         return false;
       }
 
-      dom.modelSelect.replaceChildren(...models.map((name) => {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        return option;
-      }));
-      dom.modelSelect.value = models.includes(preferredModel)
-        ? preferredModel
-        : (models.includes(S.DEFAULT_MODEL) ? S.DEFAULT_MODEL : models[0]);
+      populateModels(models, preferredModel);
+      await S.setStorage({ modelList: models, modelListAt: Date.now() });
       return true;
     } catch (error) {
       setStatusBox(`❌ اتصال برقرار نشد: ${error.message}`, "error");
@@ -204,9 +280,16 @@
     }, 2500);
   }
 
+  function clampTokens(value) {
+    const n = parseInt(value, 10);
+    if (isNaN(n)) return S.DEFAULT_MAX_OUTPUT_TOKENS;
+    return Math.max(256, Math.min(8192, n));
+  }
+
   async function saveSettings() {
     glossaryEntries = await S.saveGlossary(glossaryEntries);
     renderGlossary();
+    dom.maxTokensInput.value = clampTokens(dom.maxTokensInput.value);
     await S.setStorage({
       apiKey: dom.apiKeyInput.value.trim(),
       customProxyUrl: dom.customProxyInput.value.trim(),
@@ -216,7 +299,9 @@
       defaultTone: dom.defaultTone.value,
       autoShowTooltip: dom.autoTooltipCheckbox.checked,
       autoDictionary: dom.autoDictionaryCheckbox.checked,
-      enableCache: dom.enableCacheCheckbox.checked
+      enableCache: dom.enableCacheCheckbox.checked,
+      theme: dom.themeSelect.value,
+      maxOutputTokens: clampTokens(dom.maxTokensInput.value)
     });
     showSaveMessage("✓ تنظیمات ذخیره شد.");
   }

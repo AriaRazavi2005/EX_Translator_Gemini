@@ -44,10 +44,20 @@
     floatingBtn = document.createElement("div");
     floatingBtn.id = "gt-floating-btn";
     floatingBtn.className = "gt-glass-btn";
+    floatingBtn.setAttribute("role", "button");
+    floatingBtn.setAttribute("tabindex", "0");
+    floatingBtn.setAttribute("aria-label", "ترجمه متن انتخاب‌شده");
     floatingBtn.innerHTML = '<span class="gt-sparkle">✦</span> <span>ترجمه</span>';
     document.body.appendChild(floatingBtn);
 
     floatingBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+
+    floatingBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        floatingBtn.click();
+      }
+    });
 
     floatingBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -85,6 +95,9 @@
     modalWidget = document.createElement("div");
     modalWidget.id = "gt-modal-widget";
     modalWidget.className = "gt-glass-panel";
+    modalWidget.setAttribute("role", "dialog");
+    modalWidget.setAttribute("aria-label", "دستیار هوشمند Gemini");
+    modalWidget.tabIndex = -1;
 
     modalWidget.innerHTML = `
       <div class="gt-header" id="gt-drag-handle">
@@ -117,11 +130,13 @@
           <select id="gt-mode-select">${S.buildModeOptions("translate")}</select>
         </div>
 
+        <div class="gt-lang-row" id="gt-lang-row">
+          <select id="gt-source-lang" aria-label="زبان مبدأ">${S.buildLangOptions(S.SOURCE_LANG_CODES, "auto")}</select>
+          <button id="gt-swap-btn" class="gt-swap-btn" title="جابه‌جایی زبان‌ها" aria-label="جابه‌جایی زبان‌ها">⇄</button>
+          <select id="gt-target-lang" aria-label="زبان مقصد">${S.buildLangOptions(S.TARGET_LANG_CODES)}</select>
+        </div>
+
         <div class="gt-controls-bar">
-          <div class="gt-control-item" id="gt-target-wrap">
-            <label>مقصد:</label>
-            <select id="gt-target-lang">${S.buildLangOptions(S.TARGET_LANG_CODES)}</select>
-          </div>
           <div class="gt-control-item" id="gt-tone-wrap">
             <label>لحن:</label>
             <select id="gt-tone-select">
@@ -131,13 +146,13 @@
               <option value="technical">تخصصی</option>
             </select>
           </div>
-          <button id="gt-retranslate-btn" class="gt-mini-btn" title="اجرای مجدد (بی‌توجه به حافطه)">↻</button>
+          <button id="gt-retranslate-btn" class="gt-mini-btn" title="اجرای مجدد (بی‌توجه به حافظه)">↻</button>
         </div>
 
         <div class="gt-result-box">
           <div class="gt-result-header">
             <span id="gt-result-title">نتیجه:</span>
-            <span id="gt-cache-badge" class="gt-cache-badge" title="این نتیجه از حافطه محلی خوانده شد و سهمیه‌ای مصرف نکرد">⚡ از حافطه</span>
+            <span id="gt-cache-badge" class="gt-cache-badge" title="این نتیجه از حافظه محلی خوانده شد و سهمیه‌ای مصرف نکرد">⚡ از حافظه</span>
             <div class="gt-result-actions">
               <button id="gt-stop-btn" class="gt-icon-btn gt-stop-btn" title="توقف">■</button>
               <button id="gt-tts-btn" class="gt-icon-btn" title="پخش صوتی">🔊</button>
@@ -181,6 +196,10 @@
     el("gt-tone-select").addEventListener("change", () => {
       if (currentSelectedText) performAction(currentSelectedText);
     });
+    el("gt-source-lang").addEventListener("change", () => {
+      if (currentSelectedText) performAction(currentSelectedText);
+    });
+    el("gt-swap-btn").addEventListener("click", swapLangs);
 
     // Escape closes the widget.
     document.addEventListener("keydown", (e) => {
@@ -196,15 +215,30 @@
   function applyModeUi() {
     const mode = S.getMode(el("gt-mode-select").value);
 
-    const targetWrap = el("gt-target-wrap");
+    const langRow = el("gt-lang-row");
     const toneWrap = el("gt-tone-wrap");
 
     el("gt-target-lang").disabled = !mode.usesTarget;
+    el("gt-source-lang").disabled = !mode.usesTarget;
+    el("gt-swap-btn").disabled = !mode.usesTarget;
     el("gt-tone-select").disabled = !mode.usesTone;
-    targetWrap.classList.toggle("gt-disabled", !mode.usesTarget);
+
+    langRow.classList.toggle("gt-disabled", !mode.usesTarget);
     toneWrap.classList.toggle("gt-disabled", !mode.usesTone);
 
     el("gt-result-title").innerText = mode.icon + " " + mode.label + ":";
+  }
+
+  /** Swaps source and target languages, then re-runs. */
+  function swapLangs() {
+    const src = el("gt-source-lang");
+    const tgt = el("gt-target-lang");
+    if (!src || !tgt || src.value === "auto") return;
+
+    const previous = src.value;
+    src.value = tgt.value;
+    tgt.value = previous;
+    if (currentSelectedText) performAction(currentSelectedText);
   }
 
   function setupDragging() {
@@ -289,8 +323,7 @@
         currentSelectedText = item.source;
         srcElem.innerText = item.source;
         S.applyTextDirection(srcElem, item.source);
-        resElem.innerText = item.result;
-        S.applyTextDirection(resElem, item.result);
+        renderResult(resElem, item.result);
 
         el("gt-mode-select").value = item.mode || "translate";
         applyModeUi();
@@ -315,12 +348,18 @@
 
     const items = await S.getStorage([
       "defaultTargetLang",
+      "defaultSourceLang",
       "defaultTone",
       "defaultMode",
-      "autoDictionary"
+      "autoDictionary",
+      "theme"
     ]);
 
+    S.applyTheme(modalWidget, items.theme || "auto");
+    if (floatingBtn) S.applyTheme(floatingBtn, items.theme || "auto");
+
     if (items.defaultTargetLang) el("gt-target-lang").value = items.defaultTargetLang;
+    if (items.defaultSourceLang) el("gt-source-lang").value = items.defaultSourceLang;
     if (items.defaultTone) el("gt-tone-select").value = items.defaultTone;
 
     // A single selected word is almost always a vocabulary lookup.
@@ -343,6 +382,7 @@
     modalWidget.style.left = left + "px";
     modalWidget.style.top = top + "px";
     modalWidget.style.display = "block";
+    try { modalWidget.focus({ preventScroll: true }); } catch (e) { /* older engines */ }
 
     performAction(text);
   }
@@ -365,6 +405,13 @@
   // ---------------------------------------------------------------------------
   // Result actions
   // ---------------------------------------------------------------------------
+
+  /** Renders a finished result as structured, bidi-aware rich text. */
+  function renderResult(elem, text) {
+    if (!elem) return;
+    elem.classList.add("gt-rich");
+    elem.innerHTML = S.renderRichText(text);
+  }
 
   function copyResult() {
     const resElem = el("gt-result-content");
@@ -445,6 +492,7 @@
     const controller = activeAbortController;
 
     const targetLang = el("gt-target-lang").value;
+    const sourceLang = el("gt-source-lang").value;
     const tone = el("gt-tone-select").value;
 
     try {
@@ -452,12 +500,14 @@
         text,
         mode: mode.id,
         targetLang,
+        sourceLang,
         tone,
         forceRefresh: opts.forceRefresh === true,
         signal: controller.signal,
         onCacheHit: () => setCacheBadge(true),
         onChunk: (partial) => {
           if (controller.signal.aborted) return;
+          resElem.classList.remove("gt-rich");
           resElem.innerText = partial;
           S.applyTextDirection(resElem, partial);
         }
@@ -471,10 +521,9 @@
         return;
       }
 
-      resElem.innerText = result;
-      S.applyTextDirection(resElem, result);
+      renderResult(resElem, result);
 
-      S.saveToHistory({ source: text, result, targetLang, mode: mode.id });
+      S.saveToHistory({ source: text, result, sourceLang, targetLang, mode: mode.id });
     } catch (err) {
       if (err && err.name === "AbortError") return;
       setStreamingState(false);
@@ -520,8 +569,181 @@
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // Full-page translation
+  // ---------------------------------------------------------------------------
+
+  const SKIP_TAGS = {
+    SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, CODE: 1,
+    KBD: 1, SAMP: 1, PRE: 1, OPTION: 1, SELECT: 1
+  };
+  const PAGE_NODE_LIMIT = 800;
+
+  const pageState = { translated: false, busy: false, originals: [], abort: null };
+  let pageToast = null;
+  let toastAction = null;
+
+  function toFa(value) {
+    return String(value).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
+  }
+
+  function ensureToast() {
+    if (pageToast) return pageToast;
+    pageToast = document.createElement("div");
+    pageToast.id = "gt-page-toast";
+    pageToast.innerHTML =
+      '<span class="gt-toast-icon">🌐</span>' +
+      '<span class="gt-toast-msg" id="gt-toast-msg"></span>' +
+      '<button class="gt-toast-btn" id="gt-toast-action"></button>';
+    document.body.appendChild(pageToast);
+    el("gt-toast-action").addEventListener("click", () => {
+      if (typeof toastAction === "function") toastAction();
+    });
+    return pageToast;
+  }
+
+  function showToast(message, opts) {
+    const o = opts || {};
+    ensureToast();
+    S.applyTheme(pageToast, o.theme || "auto");
+    pageToast.classList.toggle("gt-toast-error", o.error === true);
+    el("gt-toast-msg").innerText = message;
+
+    const btn = el("gt-toast-action");
+    if (!o.done) { btn.innerText = "توقف"; toastAction = stopPageTranslation; }
+    else if (o.canRestore) { btn.innerText = "نمایش متن اصلی"; toastAction = restorePage; }
+    else { btn.innerText = "بستن"; toastAction = hideToast; }
+
+    pageToast.style.display = "flex";
+  }
+
+  function updateToast(message) {
+    const m = el("gt-toast-msg");
+    if (m) m.innerText = message;
+  }
+
+  function hideToast() {
+    if (pageToast) pageToast.style.display = "none";
+  }
+
+  function isTranslatableTextNode(node) {
+    const text = node.nodeValue;
+    if (!text || text.trim().length < 2) return false;
+    if (!/\p{L}/u.test(text)) return false; // needs at least one letter
+
+    const parent = node.parentElement;
+    if (!parent) return false;
+    if (SKIP_TAGS[parent.tagName]) return false;
+    if (parent.isContentEditable) return false;
+    if (parent.closest("#gt-modal-widget, #gt-floating-btn, #gt-page-toast")) return false;
+    if (parent.getClientRects().length === 0) return false; // display:none / detached
+
+    return true;
+  }
+
+  function collectPageTextNodes() {
+    const nodes = [];
+    if (!document.body) return nodes;
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return isTranslatableTextNode(node)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    });
+
+    let current;
+    while ((current = walker.nextNode())) {
+      nodes.push(current);
+      if (nodes.length >= PAGE_NODE_LIMIT) break;
+    }
+    return nodes;
+  }
+
+  function stopPageTranslation() {
+    if (pageState.abort) pageState.abort.abort();
+  }
+
+  function restorePage() {
+    pageState.originals.forEach((o) => { o.node.nodeValue = o.text; });
+    pageState.originals = [];
+    pageState.translated = false;
+    hideToast();
+  }
+
+  async function translatePage() {
+    // A second trigger while translated restores the original page.
+    if (pageState.busy) return;
+    if (pageState.translated) { restorePage(); return; }
+
+    const settings = await S.getStorage(["defaultTargetLang", "theme", "apiKey"]);
+    const targetLang = settings.defaultTargetLang || "fa";
+    const theme = settings.theme || "auto";
+
+    if (!settings.apiKey || !String(settings.apiKey).trim()) {
+      showToast("ابتدا کلید API را در تنظیمات افزونه وارد کنید.", { done: true, error: true, theme });
+      return;
+    }
+
+    const nodes = collectPageTextNodes();
+    if (!nodes.length) {
+      showToast("متنی برای ترجمه در این صفحه پیدا نشد.", { done: true, theme });
+      return;
+    }
+    const truncated = nodes.length >= PAGE_NODE_LIMIT;
+
+    pageState.busy = true;
+    pageState.abort = new AbortController();
+    pageState.originals = nodes.map((node) => ({ node, text: node.nodeValue }));
+    const segments = pageState.originals.map((o) => o.text.trim());
+
+    showToast("در حال ترجمه صفحه… " + toFa(0) + "٪", { theme });
+
+    try {
+      const translations = await S.translatePageSegments(segments, {
+        targetLang,
+        signal: pageState.abort.signal,
+        onProgress: (done, total) => {
+          updateToast("در حال ترجمه صفحه… " + toFa(Math.round((done / total) * 100)) + "٪");
+        }
+      });
+
+      pageState.originals.forEach((o, i) => {
+        const translated = translations[i];
+        if (translated && translated !== o.text.trim()) {
+          const lead = (o.text.match(/^\s*/) || [""])[0];
+          const trail = (o.text.match(/\s*$/) || [""])[0];
+          o.node.nodeValue = lead + translated + trail;
+        }
+      });
+
+      pageState.translated = true;
+      showToast(
+        truncated
+          ? "بخش ابتدایی صفحه ترجمه شد (به سقف تعداد رسید)."
+          : "ترجمه صفحه کامل شد.",
+        { done: true, canRestore: true, theme }
+      );
+    } catch (err) {
+      if (err && err.name === "AbortError") {
+        restorePage();
+        showToast("ترجمه صفحه متوقف شد.", { done: true, theme });
+      } else {
+        pageState.originals = [];
+        pageState.translated = false;
+        showToast("خطا در ترجمه صفحه: " + ((err && err.message) || ""), { done: true, error: true, theme });
+      }
+    } finally {
+      pageState.busy = false;
+      pageState.abort = null;
+    }
+  }
+
   chrome.runtime.onMessage.addListener((request) => {
-    if (request && request.action === "TRANSLATE_SELECTION") {
+    if (!request) return;
+
+    if (request.action === "TRANSLATE_SELECTION") {
       hideFloatingButton();
 
       // The keyboard shortcut sends no text, so fall back to the live selection.
@@ -529,6 +751,28 @@
       if (text) {
         showModalWidget(text, window.innerWidth / 2 - 200, window.innerHeight / 4);
       }
+    } else if (request.action === "TRANSLATE_PAGE") {
+      hideFloatingButton();
+      translatePage();
     }
   });
+
+  // Keep any open UI in sync when the theme changes elsewhere, or when the OS
+  // preference changes while the theme is set to "auto".
+  function reapplyTheme(theme) {
+    if (modalWidget) S.applyTheme(modalWidget, theme);
+    if (floatingBtn) S.applyTheme(floatingBtn, theme);
+    if (pageToast) S.applyTheme(pageToast, theme);
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.theme) reapplyTheme(changes.theme.newValue || "auto");
+  });
+
+  try {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", async () => {
+      const stored = (await S.getStorage(["theme"])).theme || "auto";
+      if (stored === "auto") reapplyTheme("auto");
+    });
+  } catch (e) { /* matchMedia change events unsupported */ }
 })();

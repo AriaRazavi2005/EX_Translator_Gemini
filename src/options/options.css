@@ -429,3 +429,27 @@ select {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.6);
 }
+
+/* --------------------------------------------------------------- Light theme */
+html[data-gt-theme="light"] {
+  --bg-gradient: linear-gradient(160deg, #f6f7fb 0%, #eef1ff 100%);
+  --panel-bg: rgba(255, 255, 255, 0.75);
+  --panel-border: rgba(15, 23, 42, 0.12);
+  --text-main: #0f172a;
+  --text-sub: #5b6474;
+  --input-bg: #ffffff;
+  --danger: #dc2626;
+  --success: #059669;
+}
+
+html[data-gt-theme="light"] body { color-scheme: light; }
+html[data-gt-theme="light"] .field-group label,
+html[data-gt-theme="light"] .checkbox-label,
+html[data-gt-theme="light"] .shortcut-row { color: #334155; }
+html[data-gt-theme="light"] .save-bar { background: rgba(255, 255, 255, 0.92); }
+html[data-gt-theme="light"] .sec-btn { color: #0f172a; background: rgba(15, 23, 42, 0.05); }
+html[data-gt-theme="light"] .sec-btn:hover { background: rgba(99, 102, 241, 0.18); }
+html[data-gt-theme="light"] .code-block { background: rgba(15, 23, 42, 0.06); }
+html[data-gt-theme="light"] .glossary-row,
+html[data-gt-theme="light"] .shortcut-row,
+html[data-gt-theme="light"] .cache-stats { background: rgba(15, 23, 42, 0.04); }

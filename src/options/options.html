@@ -10,7 +10,7 @@
   <div class="options-container">
     <header class="options-header">
       <div class="brand"><span class="sparkle">✦</span><h1>تنظیمات دستیار هوشمند Gemini</h1></div>
-      <span class="version-tag">v1.2.1</span>
+      <span class="version-tag">v1.3.0</span>
     </header>
 
     <main class="options-main">
@@ -58,6 +58,25 @@
       </section>
 
       <section class="settings-section">
+        <h2>🎨 ظاهر و کیفیت پاسخ</h2>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="theme-select">پوسته (تم)</label>
+            <select id="theme-select">
+              <option value="auto">خودکار (مطابق سیستم)</option>
+              <option value="light">روشن</option>
+              <option value="dark">تیره</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="max-tokens-input">حداکثر طول پاسخ (توکن)</label>
+            <input id="max-tokens-input" type="number" min="256" max="8192" step="256" dir="ltr" />
+            <p class="field-hint">برای متن‌های طولانی مقدار را بالا ببرید. پیش‌فرض ۳۰۷۲.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
         <h2>📒 واژه‌نامه اختصاصی</h2>
         <p class="section-desc">معادل‌های دلخواه خود را ثبت کنید. اگر واژه‌ای در متن ورودی باشد، مدل از معادل تعیین‌شده استفاده می‌کند.</p>
         <div class="glossary-add-row">
@@ -81,6 +100,17 @@
           <button id="clear-cache-btn" class="sec-btn">پاک کردن حافظه</button>
         </div>
         <p class="field-hint">حالت «بازنویسی» برای تولید خروجی تازه در حافظه ذخیره نمی‌شود.</p>
+      </section>
+
+      <section class="settings-section">
+        <h2>💾 پشتیبان‌گیری</h2>
+        <p class="section-desc">واژه‌نامه و تاریخچه را در یک فایل JSON ذخیره کنید یا از فایل قبلی بازگردانید. کلید API در این فایل قرار نمی‌گیرد.</p>
+        <div class="input-with-btn">
+          <button id="export-data-btn" class="sec-btn">📤 برون‌بری داده‌ها</button>
+          <button id="import-data-btn" class="sec-btn">📥 درون‌ریزی از فایل</button>
+          <span id="backup-msg" class="cache-stats" style="flex:1;"></span>
+        </div>
+        <input id="import-file-input" type="file" accept="application/json,.json" hidden />
       </section>
 
       <section class="settings-section">

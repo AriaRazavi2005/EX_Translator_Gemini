@@ -105,3 +105,40 @@ select { min-width: 0; max-width: 100%; direction: rtl; text-align: start; }
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(129,140,248,.4); border-radius: 999px; }
+
+/* -------------------------------------------------------- Rich output text */
+.output-content.is-rich { white-space: normal; }
+.gt-rt-line { margin: 0 0 4px; }
+.gt-rt-line:last-child { margin-bottom: 0; }
+.gt-rt-sub { margin: 0 0 4px; padding-inline-start: 12px; color: var(--muted); border-inline-start: 2px solid rgba(129,140,248,.45); }
+.output-content.is-rich .gt-rt-ul, .output-content.is-rich .gt-rt-ol { margin: 4px 0; padding-inline-start: 6px; list-style-position: inside; }
+.output-content.is-rich .gt-rt-ul { list-style-type: disc; }
+.output-content.is-rich .gt-rt-ol { list-style-type: decimal; }
+.output-content.is-rich li { margin: 2px 0; }
+.gt-rt-line strong { font-weight: 700; }
+.gt-rt-code { padding: 1px 5px; border-radius: 5px; background: rgba(129,140,248,.16); font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: .92em; direction: ltr; unicode-bidi: embed; }
+.gt-rt-link { color: var(--accent); text-decoration: underline; }
+
+/* ------------------------------------------------------------- Light theme */
+html[data-gt-theme="light"] {
+  --bg: linear-gradient(160deg, #f6f7fb 0%, #eef1ff 100%);
+  --panel: rgba(255, 255, 255, 0.72);
+  --border: rgba(15, 23, 42, 0.12);
+  --input: #ffffff;
+  --accent: #6366f1;
+  --purple: #7c3aed;
+  --text: #0f172a;
+  --muted: #5b6474;
+  --danger: #dc2626;
+  --success: #059669;
+}
+html[data-gt-theme="light"] body { color-scheme: light; }
+html[data-gt-theme="light"] .app-header,
+html[data-gt-theme="light"] .app-footer { background: rgba(255, 255, 255, 0.82); }
+html[data-gt-theme="light"] .icon-btn { background: rgba(15, 23, 42, 0.06); }
+html[data-gt-theme="light"] .icon-btn:hover,
+html[data-gt-theme="light"] .nav-tab:hover { background: rgba(99, 102, 241, 0.16); }
+html[data-gt-theme="light"] .nav-tab:hover { color: #1e1b4b; }
+html[data-gt-theme="light"] .placeholder-text { color: #94a3b8; }
+html[data-gt-theme="light"] .gt-rt-code { background: rgba(99, 102, 241, 0.12); }
+html[data-gt-theme="light"] .btn-hint { background: rgba(0, 0, 0, 0.14); }
